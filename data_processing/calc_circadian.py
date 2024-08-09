@@ -2,11 +2,10 @@
 
 import numpy as np
 import pandas as pd
-import data_processing.utils as utils
+import utils
 import time
-import json
 from EntropyHub import SampEn
-import data_processing.calc_circadian_advanced as calc_circadian_advanced
+import calc_circadian_advanced
 
 def calc_circadian(percept_data, zone_index, cosinor_window_left=2, cosinor_window_right=2, include_nonlinear=0):
     """

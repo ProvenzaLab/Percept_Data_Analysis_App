@@ -23,6 +23,8 @@ def plot_metrics(percept_data, subject, hemisphere, pre_DBS_bounds, post_DBS_bou
     """
     Generate a plot with multiple subplots to visualize various metrics including LFP amplitude, linear AR model,
     and R² values over time, before and after DBS.
+    
+    Find out more about this function by visiting the following link: https://github.com/shethlab/PerceptDataAnalysis/blob/main/CircadianPaper/plot_metrics.m
 
     Parameters:
         percept_data (dict): Dictionary containing processed percept data.

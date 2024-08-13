@@ -5,6 +5,8 @@ This script processes neural data for a given subject, handling raw data,
 normalizing it, and organizing it into matrices based on timestamps. The
 final data is stored in a nested dictionary structure with specific fields.
 
+Find out more about this script by visiting the following link: https://github.com/shethlab/PerceptDataAnalysis/blob/main/CircadianPaper/generate_data.m
+
 Functions:
     generate_data(subject_name: str, percept_data: Optional[dict] = None, param: dict, 
                   zone_index: Optional[dict] = None, time_zone: str = 'America/Chicago', 

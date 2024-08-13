@@ -7,6 +7,8 @@ def calc_circadian(percept_data, zone_index, cosinor_window_left=2, cosinor_wind
     """
     Calculate various circadian metrics including cosinor R2, amplitude, acrophase, linear AR R2, 
     nonlinear AR R2 (optional), and sample entropy for Percept data.
+    
+    Find out more about this function by visiting the following link: https://github.com/shethlab/PerceptDataAnalysis/blob/main/CircadianPaper/calc_circadian.m
 
     Parameters:
         percept_data (dict): Data structure containing LFP (Local Field Potential) and time-series data.

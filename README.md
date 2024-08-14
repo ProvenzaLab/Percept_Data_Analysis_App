@@ -8,12 +8,12 @@ The Percept Desktop App is designed to provide an intuitive user interface for r
 
 ### Key Fields
 
-- **Initial_DBS_programming_date**: The date the DBS treatment started, entered in the format MM-DD-YYYY.
-- **Subject_name**: The codename used to track a specific patient (e.g., '009').
-- **pre_DBS_example_days**: Enter two dates before DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
-- **post_DBS_example_days**: Enter two dates after DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
-- **Responder**: Indicates whether the subject has achieved clinical response as noted by YBOCS criteria (e.g., 'yes' or 'no').
-- **Responder_date**: If 'yes' was selected for Responder, provide the date when the patient reached clinical response in the format MM-DD-YYYY.
+- `Initial_DBS_programming_date`: The date the DBS treatment started, entered in the format MM-DD-YYYY.
+- `Subject_name`: The codename used to track a specific patient (e.g., '009').
+- `pre_DBS_example_days`: Enter two dates before DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
+- `post_DBS_example_days`: Enter two dates after DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
+- `Responder`: Indicates whether the subject has achieved clinical response as noted by YBOCS criteria (e.g., 'yes' or 'no').
+- `Responder_date`: If 'yes' was selected for Responder, provide the date when the patient reached clinical response in the format MM-DD-YYYY.
 
 ### Features
 - **Plot Metrics**: Displays various physiological and linear AR model metrics. More information can be found in the original paper linked above.

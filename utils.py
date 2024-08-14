@@ -299,13 +299,3 @@ def fill_r2_data(percept_data: Dict[str, Any], advanced_data: Dict[str, Any], de
     except KeyError:
         pass
 
-def save_to_json(dictionary: Dict[str, Any], filename: str) -> None:
-    """
-    Save a dictionary to a JSON file.
-
-    Parameters:
-        dictionary (Dict[str, Any]): The dictionary to save.
-        filename (str): The name of the JSON file to save to.
-    """
-    with open(filename, 'w') as json_file:
-        json.dump(dictionary, json_file, indent=4)

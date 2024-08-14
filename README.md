@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Percept Desktop App is designed to provide an intuitive user interface for running the percept-data analysis pipeline for OCD patients, as detailed in this [paper](https://www.nature.com/articles/s41591-024-03125-0). The original program was developed using a combination of MATLAB and Python, as seen in the [PerceptDataAnalysis repository](https://github.com/shethlab/PerceptDataAnalysis). This application translates all the code into Python and uses a Python-based library to create the GUI. The source code and instructions for downloading the app can be found on GitHub at this URL: https://tobedetermined.
+The Percept Desktop App is designed to provide an intuitive user interface for running the percept-data analysis pipeline for OCD patients, as detailed in this [paper](https://www.nature.com/articles/s41591-024-03125-0). The original program was developed using a combination of MATLAB and Python, as seen in the [PerceptDataAnalysis repository](https://github.com/shethlab/PerceptDataAnalysis). This application translates all the code into Python and uses a Python-based library to create the GUI. The source code and instructions for downloading the app can be found on this GitHub repo
 
 ## User Manual
 
@@ -29,7 +29,7 @@ Data exporting is a key feature of the Percept Data Analysis App and was designe
 - You can download plots in various formats, including `html`, `png`, `jpg`, `jpeg`, `webp`, `svg`, and `pdf`.
 - When saving a plot, a file dialog will pop up, allowing you to choose a target directory and enter a filename. If you don't specify a file extension, the plot will be saved as `html` by default, enabling interactive viewing in your browser.
 - For example, if you name your file `plot_right_008`, it will automatically save as `plot_right_008.html`. To save it in a different format, simply add the desired extension, like `plot_right_008.jpg`.
-- If you enter an unsupported extension, such as `plot_right_008.bmp`, the app will still save it as `plot_right_008.html` to ensure compatibility.
+- If you enter an unsupported extension, such as `plot_right_008.bmp`, the app will still save it as `plot_right_008.html` by default
 
 #### Export Linear AR Feature
 

@@ -182,7 +182,7 @@ class OpeningScreen(QWidget):
         self.description_label = QLabel(
             'This application helps you process and analyze Medtronic percept data.<br>'
             'Please proceed to start the data processing.<br><br>'
-            '<a href="https://github.com/ProvenzaLab/Percept_Data_Analysis_App/blob/main/README.md" style="color: #1e90ff;">Click this link for documentation on the app</a><br><br>'
+            '<a href="https://github.com/ProvenzaLab/Percept_Data_Analysis_App/blob/main/README.md#user-manual" style="color: #1e90ff;">Click this link for documentation on the app</a><br><br>'
             'Developed by the Provenza Lab', self)
         self.description_label.setAlignment(Qt.AlignCenter)
         self.description_label.setOpenExternalLinks(True)

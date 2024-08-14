@@ -21,7 +21,8 @@ def fill_outliers(data: np.ndarray, threshold_factor: int = 30) -> np.ndarray:
     """
     not_nan = ~np.isnan(data)
     median = np.median(data[not_nan])
-    mad = np.median(np.abs(data[not_nan] - median)) * 1.4826  # Scale MAD to match MATLAB
+    MATLAB_MAD_SCALE_FACTOR = 1.4826
+    mad = np.median(np.abs(data[not_nan] - median)) * MATLAB_MAD_SCALE_FACTOR
     threshold = threshold_factor * mad
     outliers = (np.abs(data - median) > threshold) & not_nan
     valid_indices = np.where(not_nan & ~outliers)[0]

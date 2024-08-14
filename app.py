@@ -521,7 +521,8 @@ class Frame1(QWidget):
 
     def validate_fields(self):
         initial_dbs_date = self.entries['Initial_DBS_programming_date'].text()
-        if not re.match(r'\d{2}-\d{2}-\d{4}', initial_dbs_date):
+        DATE_CHECK_REGEX = r'\d{2}-\d{2}-\d{4}'
+        if not re.match(DATE_CHECK_REGEX, initial_dbs_date):
             QMessageBox.warning(self, "Invalid Input", "Initial DBS programming date must be in the format MM-DD-YYYY")
             return False
 
@@ -533,13 +534,13 @@ class Frame1(QWidget):
         pre_DBS_example_days = [entry.text() for entry in self.entries['pre_DBS_example_days']]
         post_DBS_example_days = [entry.text() for entry in self.entries['post_DBS_example_days']]
         for date in pre_DBS_example_days + post_DBS_example_days:
-            if not re.match(r'\d{2}-\d{2}-\d{4}', date):
+            if not re.match(DATE_CHECK_REGEX, date):
                 QMessageBox.warning(self, "Invalid Input", "Example days must be in the format MM-DD-YYYY")
                 return False
 
         if self.responder_yes_checkbox.isChecked():
             responder_date = self.responder_date_entry.text()
-            if not re.match(r'\d{2}-\d{2}-\d{4}', responder_date):
+            if not re.match(DATE_CHECK_REGEX, responder_date):
                 QMessageBox.warning(self, "Invalid Input", "Responder date must be in the format MM-DD-YYYY")
                 return False
         

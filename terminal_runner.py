@@ -2,8 +2,11 @@ import calc_circadian
 from utils import read_json
 import plotting_utils as plots
 import generate_data
-import pickle
 
+"""_summary_
+    used to run the terminal version of the percept_data analysis app
+    should be used as a toy exploration of the pipeline, change parameters in param.json to see different results
+"""
 param_dict = read_json('param.json')
 
 percept_data, zone_index = generate_data.generate_data(subject_name=param_dict['subject_name'], param=param_dict)

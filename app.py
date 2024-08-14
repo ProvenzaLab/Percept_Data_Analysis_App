@@ -287,8 +287,14 @@ class Frame2(QWidget):
         """)
         self.json_layout.addWidget(self.json_text)
 
-        for key, value in self.param_dict.items():
-            self.json_text.append(f"{key}: {value}\n")
+        self.json_text.append(f"subject_name: {self.param_dict['subject_name']}\n")
+        self.json_text.append(f"Initial_DBS_programming_date: {self.param_dict['dbs_date']}\n")
+        self.json_text.append(f"pre_DBS_example_days: {self.param_dict['pre_DBS_example_days']}\n")
+        self.json_text.append(f"post_DBS_example_days: {self.param_dict['post_DBS_example_days']}\n")
+        if(len(self.param_dict['responder_zone_idx']) > 0):
+            self.json_text.append(f"responder_date: {self.param_dict['responder_date']}\n")
+        else:
+            self.json_text.append(f"responder: {False}\n")
 
         self.export_button = QPushButton("Export LinAR R² feature", self)
         self.export_button.clicked.connect(self.export_data)
@@ -364,7 +370,6 @@ class Frame2(QWidget):
 
         # Display the HTML file in the QWebEngineView
         self.web_view.setUrl(QUrl.fromLocalFile(temp_file_path))
-        
 
     def go_back(self):
         self.hide()
@@ -390,6 +395,7 @@ class Frame2(QWidget):
             lin_ar_df = pd.DataFrame(export_dict)
             lin_ar_df['activation_state'] = lin_ar_df['Days_since_DBS'].apply(lambda x: 'Pre-DBS' if x < 0 else 'Chronic State')
             gui_utils.save_lin_ar_feature(lin_ar_df, file_path)
+
 
 class Frame1(QWidget):
     def __init__(self, parent):

@@ -61,6 +61,8 @@ def save_lin_ar_feature(data, filename):
         data.to_json(filename, orient='records', lines=True)
     elif ext == 'xlsx':
         data.to_excel(filename, index=False)
+    elif ext == 'tsv':
+        data.to_csv(filename, sep='\t', index=False,)
     elif ext == 'txt':
         with open(filename, 'w') as f:
             f.write(data.to_string(index=False))

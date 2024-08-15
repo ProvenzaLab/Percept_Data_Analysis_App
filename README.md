@@ -10,8 +10,8 @@ The Percept Desktop App is designed to provide an intuitive user interface for r
 
 - `Initial_DBS_programming_date`: The date the DBS treatment started, entered in the format MM-DD-YYYY.
 - `Subject_name`: The codename used to track a specific patient (e.g., '009').
-- `pre_DBS_example_days`: Enter two dates before DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
-- `post_DBS_example_days`: Enter two dates after DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
+- `Pre_DBS_example_days`: Enter two dates before DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
+- `Post_DBS_example_days`: Enter two dates after DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
 - `Responder`: Indicates whether the subject has achieved clinical response as noted by YBOCS criteria (e.g., 'yes' or 'no').
 - `Responder_date`: If 'yes' was selected for Responder, provide the date when the patient reached clinical response in the format MM-DD-YYYY.
 
@@ -33,7 +33,7 @@ Data exporting is a key feature of the Percept Data Analysis App and was designe
 
 #### Export Linear AR Feature
 
-- Linear AR features can be exported in `csv`, `xlsx`, `json`, or `txt` formats.
+- Linear AR features can be exported in `csv`, `xlsx`, `json`, `tsv`, or `txt` formats.
 - Similar to plot downloads, when you enter a filename in the file dialog without an extension, it will default to `.csv`.
 - If you specify an extension, the file will be saved in the corresponding format, unknown file formats will default `.csv`.
 

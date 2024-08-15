@@ -336,7 +336,7 @@ class Frame2(QWidget):
 
     def init_hemisphere_selector(self):
         self.hemisphere_selector = QComboBox(self)
-        self.hemisphere_selector.addItems(["Left", "Right"])
+        self.hemisphere_selector.addItems(["Left Hemisphere", "Right Hemisphere"])
         self.hemisphere_selector.setCurrentIndex(self.param_dict['hemisphere'])
         self.hemisphere_selector.currentIndexChanged.connect(self.on_hemisphere_change)
 

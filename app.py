@@ -1,74 +1,55 @@
 import sys
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
-    QTextEdit, QFileDialog, QProgressBar, QMessageBox, QCheckBox, QComboBox 
+    QTextEdit, QFileDialog, QProgressBar, QMessageBox, QCheckBox, QComboBox
 )
-from PySide6.QtCore import Qt, QThread, Signal, QObject, Slot, QMetaObject, QUrl
+from PySide6.QtCore import Qt, QUrl, QTimer
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineSettings
 import generate_data
 import calc_circadian
 import plotting_utils as plots
-import pandas as pd
-import re
 import gui_utils
 import tempfile
+import multiprocessing
 
-class Worker(QObject):
-    finished = Signal()
-    file_dialog_requested = Signal()
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 600
+LOADING_SCREEN_INTERVAL = 100  # in milliseconds
 
-    def __init__(self, param_dict):
-        super().__init__()
-        self.param_dict = gui_utils.translate_param_dict(param_dict)
-        self.file_list = None
-        self.percept_data = None
-        self.zone_index = None
+def worker_function(param_dict, file_list, result_queue):
+    try:
+        percept_data, zone_index = generate_data.generate_data(
+            subject_name=param_dict['subject_name'],
+            param=param_dict,
+            file_list=file_list
+        )
 
-    def run(self):
-        try:
-            self.file_dialog_requested.emit()
-        except Exception as e:
-            print(f"Error in Worker run: {e}")
-            self.finished.emit()
+        percept_data = calc_circadian.calc_circadian(
+            percept_data=percept_data,
+            zone_index=zone_index,
+            cosinor_window_left=int(param_dict['cosinor_window_left']),
+            cosinor_window_right=int(param_dict['cosinor_window_right']),
+            include_nonlinear=int(param_dict['include_nonlinear'])
+        )
+        result_queue.put((percept_data, zone_index))
 
-    @Slot()
-    def continue_processing(self):
-        try:
-            percept_data, zone_index = generate_data.generate_data(
-                subject_name=self.param_dict['subject_name'], 
-                param=self.param_dict,
-                file_list=self.file_list
-            )
-
-            percept_data = calc_circadian.calc_circadian(
-                percept_data=percept_data, 
-                zone_index=zone_index, 
-                cosinor_window_left=int(self.param_dict['cosinor_window_left']), 
-                cosinor_window_right=int(self.param_dict['cosinor_window_right']), 
-                include_nonlinear=int(self.param_dict['include_nonlinear'])
-            )
-            self.percept_data = percept_data
-            self.zone_index = zone_index
-
-        except Exception as e:
-            print(f"Error in continue_processing: {e}")
-        finally:
-            self.finished.emit()
-            
-class ScriptRunner(QThread):
-    def __init__(self, worker):
-        super().__init__()
-        self.worker = worker
-
-    def run(self):
-        self.worker.run()
+    except Exception as e:
+        print(f"Error in worker_function: {e}")
+        result_queue.put(None)
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.initUI()
+        self.result_queue = multiprocessing.Queue()
+        self.worker_process = None
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.check_for_results)
+
+    def initUI(self):
         self.setWindowTitle("Percept Data App")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT)
 
         self.stack = QWidget(self)
         self.layout = QVBoxLayout(self.stack)
@@ -85,6 +66,9 @@ class MainWindow(QWidget):
         self.layout.addWidget(self.loading_screen)
         self.loading_screen.hide()
 
+        self.apply_styles()
+
+    def apply_styles(self):
         self.setStyleSheet("""
             QWidget {
                 background-color: #2d2d2d;
@@ -122,7 +106,7 @@ class MainWindow(QWidget):
         """)
 
     def show_frame1(self):
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT)
         self.opening_screen.hide()
         self.frame1.show()
 
@@ -131,29 +115,44 @@ class MainWindow(QWidget):
         self.loading_screen.progress_bar.setRange(0, 0)
         self.frame1.hide()
 
-        self.worker = Worker(param_dict)
-        self.worker.file_dialog_requested.connect(self.open_file_dialog)
-        self.worker.finished.connect(self.on_script_finished)
+        file_list = gui_utils.open_file_dialog(self)
 
-        self.script_runner = ScriptRunner(self.worker)
-        self.script_runner.start()
+        if not file_list:
+            self.on_script_finished(None, None)
+            return
 
-    def open_file_dialog(self):
-        file_dialog = QFileDialog()
-        file_list = file_dialog.getOpenFileNames(self, 'Select patient JSON files', '', 'JSON files (*.json)')[0]
-        if file_list:
-            self.worker.file_list = file_list
-            QMetaObject.invokeMethod(self.worker, "continue_processing", Qt.QueuedConnection)
-        else:
-            self.on_script_finished()
+        self.param_dict = gui_utils.translate_param_dict(param_dict)
+        self.worker_process = multiprocessing.Process(
+            target=worker_function,
+            args=(self.param_dict, file_list, self.result_queue)
+        )
+        self.worker_process.start()
+        self.timer.start(LOADING_SCREEN_INTERVAL)
 
-    def on_script_finished(self):
+    def check_for_results(self):
+        try:
+            if not self.result_queue.empty():
+                result = self.result_queue.get_nowait()
+                if result is None:
+                    self.on_script_finished(None, None)
+                else:
+                    percept_data, zone_index = result
+                    self.worker_process.terminate()
+                    self.on_script_finished(percept_data, zone_index)
+        except Exception as e:
+            print(f"Error checking results: {e}")
+
+    def on_script_finished(self, percept_data=None, zone_index=None):
         self.loading_screen.hide()
-        self.show_frame2()
+        if percept_data and zone_index:
+            self.show_frame2(percept_data, zone_index)
+        else:
+            QMessageBox.warning(self, "Error", "Failed to process the data. Please try again.")
+            self.show_frame1()
 
-    def show_frame2(self):
+    def show_frame2(self, percept_data, zone_index):
         self.setGeometry(100, 100, 1200, 800)
-        self.frame2 = Frame2(self, self.worker.param_dict, self.worker.percept_data, self.worker.zone_index)
+        self.frame2 = Frame2(self, self.param_dict, percept_data, zone_index)
         self.layout.addWidget(self.frame2)
         self.frame1.hide()
         self.frame2.show()
@@ -257,7 +256,6 @@ class LoadingScreen(QWidget):
 
         self.setLayout(self.layout)
 
-
 class Frame2(QWidget):
     def __init__(self, parent, param_dict, percept_data, zone_index):
         super().__init__(parent)
@@ -272,6 +270,15 @@ class Frame2(QWidget):
         self.layout = QVBoxLayout(self)
         self.content_layout = QHBoxLayout()
 
+        self.init_json_frame()
+        self.init_plot_frame()
+
+        self.layout.addLayout(self.content_layout)
+        self.init_bottom_buttons()
+        self.setLayout(self.layout)
+        self.update_plot()
+
+    def init_json_frame(self):
         self.json_fields_frame = QWidget(self)
         self.json_layout = QVBoxLayout(self.json_fields_frame)
         self.json_text = QTextEdit(self.json_fields_frame)
@@ -287,48 +294,54 @@ class Frame2(QWidget):
         """)
         self.json_layout.addWidget(self.json_text)
 
-        self.json_text.append(f"subject_name: {self.param_dict['subject_name']}\n")
-        self.json_text.append(f"Initial_DBS_programming_date: {self.param_dict['dbs_date']}\n")
-        self.json_text.append(f"pre_DBS_example_days: {self.param_dict['pre_DBS_example_days']}\n")
-        self.json_text.append(f"post_DBS_example_days: {self.param_dict['post_DBS_example_days']}\n")
-        if(len(self.param_dict['responder_zone_idx']) > 0):
-            self.json_text.append(f"responder_date: {self.param_dict['responder_date']}\n")
-        else:
-            self.json_text.append(f"responder: {False}\n")
+        self.populate_json_fields()
 
         self.export_button = QPushButton("Export LinAR R² feature", self)
         self.export_button.clicked.connect(self.export_data)
         self.json_layout.addWidget(self.export_button, alignment=Qt.AlignCenter | Qt.AlignBottom)
 
         self.json_fields_frame.setLayout(self.json_layout)
+        self.content_layout.addWidget(self.json_fields_frame, 2)
 
-        # QWebEngineView to display interactive Plotly graph
+    def populate_json_fields(self):
+        self.json_text.append(f"Subject_name: {self.param_dict['subject_name']}\n")
+        self.json_text.append(f"Initial_DBS_programming_date: {self.param_dict['dbs_date']}\n")
+        self.json_text.append(f"Pre_DBS_example_days: {self.param_dict['pre_DBS_example_days']}\n")
+        self.json_text.append(f"Post_DBS_example_days: {self.param_dict['post_DBS_example_days']}\n")
+        if(len(self.param_dict['Responder_zone_idx']) > 0):
+            self.json_text.append(f"Responder_date: {self.param_dict['responder_date']}\n")
+        else:
+            self.json_text.append(f"Responder: {False}\n")
+
+    def init_plot_frame(self):
         self.web_view = QWebEngineView(self)
-        self.web_view.setFixedSize(900, 650)  # Set the size to match the original static image size
-        settings = self.web_view.settings()
-        settings.setAttribute(QWebEngineSettings.LocalStorageEnabled, True)
-        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
+        self.web_view.setFixedSize(900, 650)
+        self.configure_web_view()
 
-        # Hemisphere selector
         self.hemisphere_selector_layout = QHBoxLayout()
         self.hemisphere_selector_layout.addStretch()
-        self.hemisphere_selector = QComboBox(self)
-        self.hemisphere_selector.addItems(["Left", "Right"])
-        self.hemisphere_selector.setCurrentIndex(self.param_dict['hemisphere'])
-        self.hemisphere_selector.currentIndexChanged.connect(self.on_hemisphere_change)
+        self.init_hemisphere_selector()
         self.hemisphere_selector_layout.addWidget(self.hemisphere_selector)
-        self.hemisphere_selector_layout.addSpacing(10)  # Adjust spacing to ensure it is visible
+        self.hemisphere_selector_layout.addSpacing(10)
 
-        # Add the selector layout above the web view
         self.plot_layout = QVBoxLayout()
         self.plot_layout.addLayout(self.hemisphere_selector_layout)
         self.plot_layout.addWidget(self.web_view)
 
-        self.content_layout.addWidget(self.json_fields_frame, 2)
         self.content_layout.addLayout(self.plot_layout, 8)
 
-        self.layout.addLayout(self.content_layout)
+    def configure_web_view(self):
+        settings = self.web_view.settings()
+        settings.setAttribute(QWebEngineSettings.LocalStorageEnabled, True)
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
 
+    def init_hemisphere_selector(self):
+        self.hemisphere_selector = QComboBox(self)
+        self.hemisphere_selector.addItems(["Left", "Right"])
+        self.hemisphere_selector.setCurrentIndex(self.param_dict['hemisphere'])
+        self.hemisphere_selector.currentIndexChanged.connect(self.on_hemisphere_change)
+
+    def init_bottom_buttons(self):
         self.button_layout = QHBoxLayout()
 
         self.back_button = QPushButton("Back", self)
@@ -341,88 +354,57 @@ class Frame2(QWidget):
 
         self.layout.addLayout(self.button_layout)
 
-        self.setLayout(self.layout)
-        self.update_plot()
-
     def on_hemisphere_change(self, index):
         self.param_dict['hemisphere'] = index
         self.update_plot()
 
     def update_plot(self):
-        # Generate the Plotly figure
         self.zone_index['non_responder'] = []
         fig = plots.plot_metrics(
-            percept_data=self.percept_data, 
-            subject=self.param_dict['subject_name'], 
-            hemisphere=self.param_dict['hemisphere'], 
-            pre_DBS_bounds=self.param_dict['pre_DBS_example_days'], 
-            post_DBS_bounds=self.param_dict['post_DBS_example_days'], 
+            percept_data=self.percept_data,
+            subject=self.param_dict['subject_name'],
+            hemisphere=self.param_dict['hemisphere'],
+            pre_DBS_bounds=self.param_dict['pre_DBS_example_days'],
+            post_DBS_bounds=self.param_dict['post_DBS_example_days'],
             zone_index=self.zone_index
         )
-        
-        # Store the figure in an attribute for later use
-        self.current_plot = fig
-        
-        # Use a temporary file to store the HTML content
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as temp_file:
-            temp_file.write(fig.to_html(include_plotlyjs='cdn').encode('utf-8'))
-            temp_file_path = temp_file.name
 
-        # Display the HTML file in the QWebEngineView
+        self.current_plot = fig
+
+        temp_file_path = gui_utils.create_temp_plot(fig)
+
         self.web_view.setUrl(QUrl.fromLocalFile(temp_file_path))
 
     def go_back(self):
         self.hide()
-        self.parent.setGeometry(100, 100, 800, 650)
+        self.parent.setGeometry(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT)
         self.parent.frame1.show()
 
     def download_image(self):
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save Image", "", "All Files (*)")
+        file_path = gui_utils.open_save_dialog(self, "Save Image", "")
         if file_path and self.current_plot:
             gui_utils.save_plot(self.current_plot, file_path)
         else:
             QMessageBox.warning(self, "Error", "No plot is available to save.")
 
     def export_data(self):
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save Data", "", "All Files (*)")
+        file_path = gui_utils.open_save_dialog(self, "Save Data", "")
         if file_path:
-            linAR_r2 = self.percept_data['linearAR_R2'][self.param_dict['subject_name']][self.param_dict['hemisphere']]
-            days = self.percept_data['days'][self.param_dict['subject_name']][self.param_dict['hemisphere']]
-            export_dict = {
-                'Days_since_DBS': days.tolist(),
-                'R2_values': linAR_r2.tolist()
-            }
-            lin_ar_df = pd.DataFrame(export_dict)
-            lin_ar_df['activation_state'] = lin_ar_df['Days_since_DBS'].apply(lambda x: 'Pre-DBS' if x < 0 else 'Chronic State')
+            lin_ar_df = gui_utils.prepare_export_data(self.percept_data, self.param_dict)
             gui_utils.save_lin_ar_feature(lin_ar_df, file_path)
-
 
 class Frame1(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.fields = {
-            "subject_name": "009",
-            "Initial_DBS_programming_date": "12-22-2023",
-            "pre_DBS_example_days": ["12-10-2023", "12-13-2023"],
-            "post_DBS_example_days": ["03-16-2024", "03-18-2024"],
-            "responder": False,
-            "responder_date": ""
-        }
+        self.fields = self.get_initial_fields()
         self.field_order = [
             "subject_name",
             "Initial_DBS_programming_date",
             "pre_DBS_example_days",
             "post_DBS_example_days"
         ]
-        self.tooltips = {
-            "subject_name": "Enter the subject's name or ID.",
-            "Initial_DBS_programming_date": "Enter the date of initial DBS programming in MM-DD-YYYY format.",
-            "pre_DBS_example_days": "Enter two example days before DBS in MM-DD-YYYY format.",
-            "post_DBS_example_days": "Enter two example days after DBS in MM-DD-YYYY format.",
-            "responder": "Select if the subject is a responder to the treatment.",
-            "responder_date": "Enter the date when the subject became a responder in MM-DD-YYYY format."
-        }
+        self.tooltips = self.get_tooltips()
         self.initUI()
 
     def initUI(self):
@@ -431,6 +413,35 @@ class Frame1(QWidget):
         self.layout.setSpacing(5)
         self.entries = {}
 
+        self.create_field_entries()
+        self.create_responder_checkbox()
+        self.create_responder_date_entry()
+
+        self.save_button = QPushButton("Save and Continue", self)
+        self.layout.addWidget(self.save_button)
+        self.save_button.clicked.connect(self.save_data)
+
+    def get_initial_fields(self):
+        return {
+            "subject_name": "009",
+            "Initial_DBS_programming_date": "12-22-2023",
+            "pre_DBS_example_days": ["12-10-2023", "12-13-2023"],
+            "post_DBS_example_days": ["03-16-2024", "03-18-2024"],
+            "responder": False,
+            "responder_date": ""
+        }
+
+    def get_tooltips(self):
+        return {
+            "subject_name": "Enter the subject's name or ID.",
+            "Initial_DBS_programming_date": "Enter the date of initial DBS programming in MM-DD-YYYY format.",
+            "pre_DBS_example_days": "Enter two example days before DBS in MM-DD-YYYY format.",
+            "post_DBS_example_days": "Enter two example days after DBS in MM-DD-YYYY format.",
+            "responder": "Select if the subject is a responder to the treatment.",
+            "responder_date": "Enter the date when the subject became a responder in MM-DD-YYYY format."
+        }
+
+    def create_field_entries(self):
         for key in self.field_order:
             value = self.fields[key]
             hbox = QHBoxLayout()
@@ -438,15 +449,7 @@ class Frame1(QWidget):
             hbox.addWidget(label)
 
             if isinstance(value, list):
-                entry1 = QLineEdit(self)
-                entry1.setText(str(value[0]))
-                entry1.setToolTip(self.tooltips[key])
-                hbox.addWidget(entry1)
-                entry2 = QLineEdit(self)
-                entry2.setText(str(value[1]))
-                entry2.setToolTip(self.tooltips[key])
-                hbox.addWidget(entry2)
-                self.entries[key] = (entry1, entry2)
+                self.create_list_field_entries(key, value, hbox)
             else:
                 entry = QLineEdit(self)
                 entry.setText(str(value))
@@ -456,6 +459,18 @@ class Frame1(QWidget):
 
             self.layout.addLayout(hbox)
 
+    def create_list_field_entries(self, key, value, layout):
+        entry1 = QLineEdit(self)
+        entry1.setText(str(value[0]))
+        entry1.setToolTip(self.tooltips[key])
+        layout.addWidget(entry1)
+        entry2 = QLineEdit(self)
+        entry2.setText(str(value[1]))
+        entry2.setToolTip(self.tooltips[key])
+        layout.addWidget(entry2)
+        self.entries[key] = (entry1, entry2)
+
+    def create_responder_checkbox(self):
         self.responder_label = QLabel("Responder ", self)
         self.responder_yes_checkbox = QCheckBox("Yes", self)
         self.responder_no_checkbox = QCheckBox("No", self)
@@ -465,14 +480,16 @@ class Frame1(QWidget):
         responder_layout = QHBoxLayout()
         responder_layout.addWidget(self.responder_label)
         responder_layout.addWidget(self.responder_yes_checkbox)
-        
         responder_layout.addSpacing(15)
-        
         responder_layout.addWidget(self.responder_no_checkbox)
         responder_layout.addStretch()
 
         self.layout.addLayout(responder_layout)
 
+        self.responder_yes_checkbox.stateChanged.connect(self.on_responder_checkbox_changed)
+        self.responder_no_checkbox.stateChanged.connect(self.on_responder_checkbox_changed)
+
+    def create_responder_date_entry(self):
         self.responder_date_label = QLabel("Responder Date ", self)
         self.responder_date_entry = QLineEdit(self)
         self.responder_date_entry.setToolTip(self.tooltips["responder_date"])
@@ -485,13 +502,6 @@ class Frame1(QWidget):
 
         self.responder_date_label.hide()
         self.responder_date_entry.hide()
-
-        self.responder_yes_checkbox.stateChanged.connect(self.on_responder_checkbox_changed)
-        self.responder_no_checkbox.stateChanged.connect(self.on_responder_checkbox_changed)
-
-        self.save_button = QPushButton("Save and Continue", self)
-        self.layout.addWidget(self.save_button)
-        self.save_button.clicked.connect(self.save_data)
 
     def format_field_name(self, field_name):
         words = field_name.split('_')
@@ -514,36 +524,29 @@ class Frame1(QWidget):
                 self.responder_date_label.hide()
                 self.responder_date_entry.hide()
 
-        # If neither box is checked, hide the responder date fields
         if not self.responder_yes_checkbox.isChecked() and not self.responder_no_checkbox.isChecked():
             self.responder_date_label.hide()
             self.responder_date_entry.hide()
 
     def validate_fields(self):
-        initial_dbs_date = self.entries['Initial_DBS_programming_date'].text()
-        DATE_CHECK_REGEX = r'\d{2}-\d{2}-\d{4}'
-        if not re.match(DATE_CHECK_REGEX, initial_dbs_date):
+        if not gui_utils.validate_date(self.entries['Initial_DBS_programming_date'].text()):
             QMessageBox.warning(self, "Invalid Input", "Initial DBS programming date must be in the format MM-DD-YYYY")
             return False
 
-        subject_name = self.entries['subject_name'].text()
-        if not subject_name:
+        if not self.entries['subject_name'].text():
             QMessageBox.warning(self, "Invalid Input", "Subject name must be filled in")
             return False
 
         pre_DBS_example_days = [entry.text() for entry in self.entries['pre_DBS_example_days']]
         post_DBS_example_days = [entry.text() for entry in self.entries['post_DBS_example_days']]
-        for date in pre_DBS_example_days + post_DBS_example_days:
-            if not re.match(DATE_CHECK_REGEX, date):
-                QMessageBox.warning(self, "Invalid Input", "Example days must be in the format MM-DD-YYYY")
-                return False
+        if not all(gui_utils.validate_date(date) for date in pre_DBS_example_days + post_DBS_example_days):
+            QMessageBox.warning(self, "Invalid Input", "Example days must be in the format MM-DD-YYYY")
+            return False
 
-        if self.responder_yes_checkbox.isChecked():
-            responder_date = self.responder_date_entry.text()
-            if not re.match(DATE_CHECK_REGEX, responder_date):
-                QMessageBox.warning(self, "Invalid Input", "Responder date must be in the format MM-DD-YYYY")
-                return False
-        
+        if self.responder_yes_checkbox.isChecked() and not gui_utils.validate_date(self.responder_date_entry.text()):
+            QMessageBox.warning(self, "Invalid Input", "Responder date must be in the format MM-DD-YYYY")
+            return False
+
         if not (self.responder_yes_checkbox.isChecked() or self.responder_no_checkbox.isChecked()):
             QMessageBox.warning(self, "Invalid Input", "Responder status must be checked. Select 'Yes' for responder or 'No' for non-responder.")
             return False

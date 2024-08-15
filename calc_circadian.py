@@ -83,7 +83,7 @@ def calc_circadian(percept_data, zone_index, cosinor_window_left=2, cosinor_wind
                     continue
                 y_filled = LFP_filled[:, i].T.flatten()
                 s = SampEn(y_filled, m=2, tau=1, r=3.6)
-                sample_entropy[i] = s[0][2]  # Adjust indexing based on the structure of 's'
+                sample_entropy[i] = s[0][2] 
 
             # Save the calculated metrics to percept_data
             keys = ['entropy', 'amplitude', 'acrophase', 'cosinor_p', 'template_acro', 'template_p']
@@ -100,10 +100,13 @@ def calc_circadian(percept_data, zone_index, cosinor_window_left=2, cosinor_wind
     mat_file = [percept_data, zone_index]
     all_components = [num_components]
 
+    print('Performing advanced circadian calculations...') # Used for logging disregard if not needed
+    
     advanced_calc_data = {}
     for model in models:
         advanced_calc_data[model] = {}
         for hemisphere in [0, 1]:
+            print(f'{model} - {hemisphere}') # Used for logging disregard if not needed
             advanced_calc_data[model][hemisphere] = calc_circadian_advanced.main(
                 hemi=hemisphere, 
                 mat_file=mat_file, 

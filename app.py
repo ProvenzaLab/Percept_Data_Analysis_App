@@ -1,7 +1,7 @@
 import sys
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
-    QTextEdit, QFileDialog, QProgressBar, QMessageBox, QCheckBox, QComboBox
+    QTextEdit, QProgressBar, QMessageBox, QCheckBox, QComboBox
 )
 from PySide6.QtCore import Qt, QUrl, QTimer
 from PySide6.QtWebEngineWidgets import QWebEngineView

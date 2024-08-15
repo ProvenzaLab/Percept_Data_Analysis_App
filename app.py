@@ -10,7 +10,6 @@ import generate_data
 import calc_circadian
 import plotting_utils as plots
 import gui_utils
-import tempfile
 import multiprocessing
 
 WINDOW_WIDTH = 800

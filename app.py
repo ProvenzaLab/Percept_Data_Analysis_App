@@ -307,7 +307,7 @@ class Frame2(QWidget):
         self.json_text.append(f"Initial_DBS_programming_date: {self.param_dict['dbs_date']}\n")
         self.json_text.append(f"Pre_DBS_example_days: {self.param_dict['pre_DBS_example_days']}\n")
         self.json_text.append(f"Post_DBS_example_days: {self.param_dict['post_DBS_example_days']}\n")
-        if(len(self.param_dict['Responder_zone_idx']) > 0):
+        if(len(self.param_dict['responder_zone_idx']) > 0):
             self.json_text.append(f"Responder_date: {self.param_dict['responder_date']}\n")
         else:
             self.json_text.append(f"Responder: {False}\n")

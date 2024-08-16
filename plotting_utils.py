@@ -3,6 +3,64 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+def weighted_median(values, weights):
+    """
+    Calculate the weighted median of the given values with the specified weights.
+
+    Parameters:
+        values (array): Array of values.
+        weights (array): Array of weights corresponding to the values.
+
+    Returns:
+        float: The weighted median of the values.
+    """
+    sorted_indices = np.argsort(values)
+    sorted_data = np.array(values)[sorted_indices]
+    sorted_weights = np.array(weights)[sorted_indices]
+    cumulative_weight = np.cumsum(sorted_weights)
+    median_idx = np.searchsorted(cumulative_weight, 0.5 * cumulative_weight[-1])
+    return sorted_data[median_idx]
+
+def emm_plot(days, stat, ema_skip, span=5):
+    """
+    Calculate Exponential Moving Median (EMM) for the given statistical data, skipping a specified number of points.
+
+    Parameters:
+        days (array): Array of days corresponding to the data.
+        stat (array): Statistical data to calculate the EMM on.
+        ema_skip (int): Number of points to skip at the beginning of the EMM calculation.
+        span (int): The span or window size for the EMM calculation. Default is 5.
+
+    Returns:
+        tuple: Arrays of days and corresponding EMM values, starting after the skipped points.
+    """
+    # Ensure the input is a numpy array for consistent behavior
+    stat = np.array(stat)
+
+    # Find the index to start the calculation, skipping any NaNs and the specified number of points
+    skip_idx = max(ema_skip, np.where(~np.isnan(stat))[0][0])
+    
+    # Calculate weights for the EMM
+    weights = np.exp(np.linspace(-1., 0., span))
+    weights /= weights.sum()
+
+    # Initialize the EMM values
+    emm_values = []
+
+    for i in range(skip_idx, len(stat)):
+        if i < span:
+            # If we don't have enough data points for the full span, skip this index
+            emm_values.append(np.nan)
+        else:
+            window = stat[i-span+1:i+1]
+            if np.any(np.isnan(window)):
+                emm_values.append(np.nan)
+            else:
+                median_value = weighted_median(window, weights)
+                emm_values.append(median_value)
+
+    return days[skip_idx:], np.array(emm_values)
+
 def ema_plot(days, stat, ema_skip):
     """
     Calculate Exponential Moving Average (EMA) for the given statistical data, skipping a specified number of points.
@@ -122,10 +180,12 @@ def plot_metrics(percept_data, subject, hemisphere, pre_DBS_bounds, post_DBS_bou
     fig.update_yaxes(title_text="9 Hz LFP (mV)", row=1, col=1, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
     fig.update_xaxes(tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
 
-    # Zoomed Pre-DBS
+
     t_zoom = np.ravel(t, order='F')[~np.isnan(np.ravel(t, order='F'))]
     OG_zoom = np.ravel(OG, order='F')[~np.isnan(np.ravel(OG, order='F'))]
     linAR_zoom = np.ravel(linAR, order='F')[~np.isnan(np.ravel(linAR, order='F'))]
+    
+    # Zoomed Pre-DBS
     fig.add_trace(go.Scatter(x=t_zoom, y=OG_zoom, mode='lines', name="Original", line=dict(color=c_OG, width=2), showlegend=True), row=2, col=1)
     fig.add_trace(go.Scatter(x=t_zoom, y=linAR_zoom, mode='lines', name="Linear AR", line=dict(color=c_linAR, width=1.5), showlegend=True), row=2, col=1)
     fig.update_yaxes(title_text="9 Hz LFP Amplitude (mV)", range=ylim_LFP, row=2, col=1, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
@@ -143,7 +203,7 @@ def plot_metrics(percept_data, subject, hemisphere, pre_DBS_bounds, post_DBS_bou
                                  y=linAR_R2[start_index[i]+1:start_index[i+1]]*100, 
                                  mode='markers', marker=dict(color=c_dots, size=sz), showlegend=False),
                       row=3, col=1)
-        days_ema, linAR_R2_ema = ema_plot(days[start_index[i]+1:start_index[i+1]], linAR_R2[start_index[i]+1:start_index[i+1]], ema_skip)
+        days_ema, linAR_R2_ema = emm_plot(days[start_index[i]+1:start_index[i+1]], linAR_R2[start_index[i]+1:start_index[i+1]], ema_skip)
         fig.add_trace(go.Scatter(x=days_ema, y=linAR_R2_ema*100, mode='lines', line=dict(color=c_linAR), showlegend=False),
                       row=3, col=1)
     fig.update_yaxes(title_text="Linear AR R² (%)", range=ylim_R2, row=3, col=1, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)

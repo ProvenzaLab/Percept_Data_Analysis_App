@@ -95,7 +95,13 @@ def prepare_export_data(percept_data, param_dict):
         'R2_values': linAR_r2.tolist()
     }
     lin_ar_df = pd.DataFrame(export_dict)
-    lin_ar_df['activation_state'] = lin_ar_df['Days_since_DBS'].apply(lambda x: 'Pre-DBS' if x < 0 else 'Chronic State')
+    lin_ar_df['activation_state'] = lin_ar_df['Days_since_DBS'].apply(
+        lambda x: (
+            'Responder' if len(param_dict['responder_zone_idx']) > 0 and x > param_dict['responder_zone_idx'][0]
+            else 'Pre-DBS' if x < 0
+            else 'Chronic State'
+        )   
+    )
     return lin_ar_df
 
 def validate_date(date_str):

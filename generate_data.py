@@ -28,11 +28,10 @@ Usage:
 import numpy as np
 import pandas as pd
 from tkinter import filedialog
-from tkinter import Tk
 import utils
 from datetime import datetime
 import pytz
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List
 
 def generate_data(
     subject_name: str, 
@@ -47,6 +46,7 @@ def generate_data(
 
     Parameters:
         subject_name (str): The ID of the subject whose data will be added (e.g., "B001").
+        param (dict): Parameters dictionary containing additional information such as 'dbs_date', 'zone_idx', etc.
         percept_data (dict, optional): Existing percept data dictionary to add this patient data to. Defaults to None.
         param (dict): Parameters dictionary containing additional information such as 'dbs_date', 'zone_idx', etc.
         zone_index (dict, optional): Existing zone index dictionary to add this patient data to. Defaults to None.

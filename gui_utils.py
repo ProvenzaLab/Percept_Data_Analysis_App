@@ -20,15 +20,15 @@ def translate_param_dict(input_data):
     
     current_day = datetime.now().strftime(DATE_FORMAT)
     if input_data['responder']:
-        responder_zone_idx = [
+        responder_zone_idx = (
             days_difference(input_data['responder_date'], input_data['Initial_DBS_programming_date']), 
             days_difference(current_day, input_data['responder_date'])
-        ]
+        )
         input_data['responder_zone_idx'] = responder_zone_idx
         input_data['non_responder_idx'] = []
     else:
         input_data['responder_zone_idx'] = []
-        input_data['non_responder_idx'] = [0, days_difference(current_day, input_data['Initial_DBS_programming_date'])]
+        input_data['non_responder_idx'] = (0, days_difference(current_day, input_data['Initial_DBS_programming_date']))
         
     translated_data = {
         "dbs_date": input_data['Initial_DBS_programming_date'],

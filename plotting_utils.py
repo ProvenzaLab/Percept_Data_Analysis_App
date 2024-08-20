@@ -3,13 +3,13 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-def weighted_median(values, weights):
+def weighted_median(values: np.ndarray, weights: np.ndarray) -> float:
     """
     Calculate the weighted median of the given values with the specified weights.
 
     Parameters:
-        values (array): Array of values.
-        weights (array): Array of weights corresponding to the values.
+        values (np.ndarray): Array of values.
+        weights (np.ndarray): Array of weights corresponding to the values.
 
     Returns:
         float: The weighted median of the values.
@@ -21,18 +21,18 @@ def weighted_median(values, weights):
     median_idx = np.searchsorted(cumulative_weight, 0.5 * cumulative_weight[-1])
     return sorted_data[median_idx]
 
-def emm_plot(days, stat, ema_skip, span=5):
+def emm_plot(days: np.ndarray, stat: np.ndarray, ema_skip: int, span: int = 5) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculate Exponential Moving Median (EMM) for the given statistical data, skipping a specified number of points.
 
     Parameters:
-        days (array): Array of days corresponding to the data.
-        stat (array): Statistical data to calculate the EMM on.
+        days (np.ndarray): Array of days corresponding to the data.
+        stat (np.ndarray): Statistical data to calculate the EMM on.
         ema_skip (int): Number of points to skip at the beginning of the EMM calculation.
         span (int): The span or window size for the EMM calculation. Default is 5.
 
     Returns:
-        tuple: Arrays of days and corresponding EMM values, starting after the skipped points.
+        tuple[np.ndarray, np.ndarray]: Arrays of days and corresponding EMM values, starting after the skipped points.
     """
     # Ensure the input is a numpy array for consistent behavior
     stat = np.array(stat)
@@ -61,39 +61,44 @@ def emm_plot(days, stat, ema_skip, span=5):
 
     return days[skip_idx:], np.array(emm_values)
 
-def ema_plot(days, stat, ema_skip):
+def ema_plot(days: np.ndarray, stat: np.ndarray, ema_skip: int) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculate Exponential Moving Average (EMA) for the given statistical data, skipping a specified number of points.
 
     Parameters:
-        days (array): Array of days corresponding to the data.
-        stat (array): Statistical data to calculate the EMA on.
+        days (np.ndarray): Array of days corresponding to the data.
+        stat (np.ndarray): Statistical data to calculate the EMA on.
         ema_skip (int): Number of points to skip at the beginning of the EMA calculation.
 
     Returns:
-        tuple: Arrays of days and corresponding EMA values, starting after the skipped points.
+        tuple[np.ndarray, np.ndarray]: Arrays of days and corresponding EMA values, starting after the skipped points.
     """
     skip_idx = max(ema_skip, np.where(~np.isnan(stat))[0][0])
     ema = pd.Series(stat).ewm(span=5, adjust=False).mean().fillna(0).to_numpy()
     return days[skip_idx:], ema[skip_idx:]
 
-def plot_metrics(percept_data, subject, hemisphere, pre_DBS_bounds, post_DBS_bounds, zone_index):
+def plot_metrics(
+    percept_data: dict, 
+    subject: str, 
+    hemisphere: int, 
+    pre_DBS_bounds: tuple[int, int], 
+    post_DBS_bounds: tuple[int, int], 
+    zone_index: dict
+) -> go.Figure:
     """
     Generate a plot with multiple subplots to visualize various metrics including LFP amplitude, linear AR model,
     and R² values over time, before and after DBS.
-    
-    Find out more about this function by visiting the following link: https://github.com/shethlab/PerceptDataAnalysis/blob/main/CircadianPaper/plot_metrics.m
 
     Parameters:
         percept_data (dict): Dictionary containing processed percept data.
         subject (str): Subject identifier.
         hemisphere (int): Hemisphere index (0 or 1).
-        pre_DBS_bounds (tuple): X-axis bounds for the pre-DBS zoomed plot.
-        post_DBS_bounds (tuple): X-axis bounds for the post-DBS zoomed plot.
+        pre_DBS_bounds (tuple[int, int]): X-axis bounds for the pre-DBS zoomed plot.
+        post_DBS_bounds (tuple[int, int]): X-axis bounds for the post-DBS zoomed plot.
         zone_index (dict): Dictionary containing responder and non-responder indices for each subject.
 
     Returns:
-        plotly.graph_objects.Figure: A Plotly figure with the generated subplots.
+        go.Figure: A Plotly figure with the generated subplots.
     """
     # Color and style settings
     c_preDBS = 'rgba(255, 215, 0, 0.5)'

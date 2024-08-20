@@ -297,5 +297,5 @@ def fill_r2_data(percept_data: Dict[str, Any], advanced_data: Dict[str, Any], de
             
             percept_data[f'{dest_model}_R2'][subject][hemisphere] = temp_data
     except KeyError:
-        pass
+        print(f'Error: {orig_model} R² data not found for {subject} - Hemisphere {hemisphere}')
 

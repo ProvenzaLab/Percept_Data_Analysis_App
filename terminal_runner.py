@@ -2,7 +2,6 @@ import calc_circadian
 from utils import read_json
 import plotting_utils as plots
 import generate_data
-
 """_summary_
     used to run the terminal version of the percept_data analysis app
     should be used as a toy exploration of the pipeline, change parameters in param.json to see different results

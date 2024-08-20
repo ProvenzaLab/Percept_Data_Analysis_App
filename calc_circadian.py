@@ -3,7 +3,13 @@ import utils
 from EntropyHub import SampEn
 import calc_circadian_advanced
 
-def calc_circadian(percept_data, zone_index, cosinor_window_left=2, cosinor_window_right=2, include_nonlinear=0):
+def calc_circadian(
+    percept_data: dict, 
+    zone_index: dict, 
+    cosinor_window_left: int = 2, 
+    cosinor_window_right: int = 2, 
+    include_nonlinear: int = 0
+) -> dict:
     """
     Calculate various circadian metrics including cosinor R2, amplitude, acrophase, linear AR R2, 
     nonlinear AR R2 (optional), and sample entropy for Percept data.

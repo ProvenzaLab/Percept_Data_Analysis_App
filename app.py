@@ -29,7 +29,7 @@ def worker_function(param_dict, file_list, result_queue):
             zone_index=zone_index,
             cosinor_window_left=int(param_dict['cosinor_window_left']),
             cosinor_window_right=int(param_dict['cosinor_window_right']),
-            include_nonlinear=int(param_dict['include_nonlinear'])
+            include_nonlinear=param_dict['include_nonlinear']
         )
         result_queue.put((percept_data, zone_index))
 
@@ -358,7 +358,6 @@ class Frame2(QWidget):
         self.update_plot()
 
     def update_plot(self):
-        self.zone_index['non_responder'] = []
         fig = plots.plot_metrics(
             percept_data=self.percept_data,
             subject=self.param_dict['subject_name'],

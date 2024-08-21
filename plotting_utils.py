@@ -169,19 +169,26 @@ def plot_metrics(
         )]
     )
 
-    # Plot Full Time-Domain as separate traces
+    # Plot Full Time-Domain Plot
     for i in range(len(start_index) - 1):
-        segment_t = t[:, start_index[i]+1:start_index[i+1]]
-        segment_OG = OG[:, start_index[i]+1:start_index[i+1]]
+        segment_t = np.ravel(t[:, start_index[i]+1:start_index[i+1]], order='F')
+        segment_OG = np.ravel(OG[:, start_index[i]+1:start_index[i+1]], order='F')
+
         mask = ~np.isnan(segment_t) & ~np.isnan(segment_OG)
-        segment_t = segment_t[mask]
-        segment_OG = segment_OG[mask]
-        fig.add_trace(go.Scatter(x=np.ravel(segment_t, order='F'), 
-                                 y=np.ravel(segment_OG, order='F'), 
-                                 mode='lines', 
-                                 line=dict(color=c_OG, width=1),
-                                 showlegend=False),
-                      row=1, col=1)
+        valid_indices = np.where(mask)[0]
+        
+        if len(valid_indices) > 0:
+            segments = np.split(valid_indices, np.where(np.diff(valid_indices) != 1)[0] + 1)
+            
+            for segment in segments:
+                if len(segment) > 0:
+                    fig.add_trace(go.Scatter(
+                        x=segment_t[segment],
+                        y=segment_OG[segment],
+                        mode='lines',
+                        line=dict(color=c_OG, width=1),
+                        showlegend=False
+                    ), row=1, col=1)
     fig.update_yaxes(title_text="9 Hz LFP (mV)", row=1, col=1, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
     fig.update_xaxes(tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
 

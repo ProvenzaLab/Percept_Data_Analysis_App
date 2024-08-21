@@ -58,7 +58,7 @@ The Core Analysis Pipeline consists of the following key files:
 - `plotting_utils.py`: Generates a summary plot encapsulating the most critical information from the processed data_struct.
 - `utils.py`: Provides various helper methods utilized by the above files.
 
-#### Input Parameters
+#### User Defined Hyper-Parameters
 
 To run the Core Analysis Pipeline, users must specify certain hyperparameters, divided into `Required` and `Optional` categories.
 

@@ -8,7 +8,7 @@ def calc_circadian(
     zone_index: dict, 
     cosinor_window_left: int = 2, 
     cosinor_window_right: int = 2, 
-    include_nonlinear: int = 0
+    include_nonlinear: bool = False
 ) -> dict:
     """
     Calculate various circadian metrics including cosinor R2, amplitude, acrophase, linear AR R2, 
@@ -21,7 +21,7 @@ def calc_circadian(
         zone_index (dict): Structure containing clinical response days (response, non-response, hypomania).
         cosinor_window_left (int): Number of days prior to the day of interest for cosinor calculation.
         cosinor_window_right (int): Number of days after the day of interest for cosinor calculation.
-        include_nonlinear (int, optional): Flag to include nonlinear AR model calculations. Defaults to 0.
+        include_nonlinear (bool, optional): Flag to include nonlinear AR model calculations. Defaults to False.
 
     Returns:
         dict: Updated percept_data structure with calculated metrics.
@@ -33,7 +33,9 @@ def calc_circadian(
         raise ValueError('Cosinor window inputs must be integers >= 0.')
 
     # Determine models to include based on the include_nonlinear flag
-    models = ['Cosinor', 'LinAR', 'SE'] if include_nonlinear != 1 else ['Cosinor', 'LinAR', 'NN_AR', 'SE']
+    models = ['Cosinor', 'LinAR', 'SE']
+    if include_nonlinear:
+        models.append('NN_AR')
 
     for subject in percept_data['LFP_norm_matrix'].keys():
         num_components = 1

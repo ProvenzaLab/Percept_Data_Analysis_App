@@ -40,7 +40,7 @@ def translate_param_dict(input_data):
         "hemisphere": hemisphere,
         "cosinor_window_left": 2,
         "cosinor_window_right": 2,
-        "include_nonlinear": 0,
+        "include_nonlinear": False,
         "responder_date": input_data['responder_date']
     }
 

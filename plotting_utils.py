@@ -102,8 +102,10 @@ def plot_metrics(
     """
     # Color and style settings
     c_preDBS = 'rgba(255, 215, 0, 0.5)'
-    c_linAR = 'rgba(51, 160, 44, 1)'
+    c_responder = 'rgba(0, 0, 255, 1)'
+    c_nonresponder = 'rgba(255, 185, 0, 1)'
     c_dots = 'rgba(128, 128, 128, 0.5)'
+    c_linAR = 'rgba(51, 160, 44, 1)'
     c_OG = 'rgba(128, 128, 128, 0.7)'
     sz = 5
     ylim_LFP = [-2, 6]
@@ -122,8 +124,14 @@ def plot_metrics(
     # Identify responder and non-responder indices
     pre_DBS_idx = np.where(days < 0)[0]
     try:
-        responder_idx = np.intersect1d(days, zone_index['responder'][patient_idx], return_indices=True)[1]
-        non_responder_idx = np.intersect1d(days, zone_index['non_responder'][patient_idx], return_indices=True)[1]
+        # Check if the patient has any responder days
+        if len(zone_index['responder'][0]) > 0:
+            first_responder_day = zone_index['responder'][0][0]
+            responder_start_idx = np.searchsorted(days, first_responder_day, side='left')
+            responder_idx = np.arange(responder_start_idx, len(days))
+        else:
+            responder_idx = np.asarray([], dtype=int)
+            non_responder_idx = np.where(days >= 0)[0]     
     except:
         responder_idx = np.asarray([], dtype=int)
         non_responder_idx = np.asarray([], dtype=int)
@@ -210,14 +218,53 @@ def plot_metrics(
     fig.update_xaxes(range=post_DBS_bounds, row=2, col=3, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
 
     # Linear AR R² Over Time
+    days_ema_full, linAR_R2_ema_full = _ema_plot(days, linAR_R2 * 100, ema_skip)
+    
     for i in range(len(start_index) - 1):
-        fig.add_trace(go.Scatter(x=days[start_index[i]+1:start_index[i+1]], 
-                                 y=linAR_R2[start_index[i]+1:start_index[i+1]]*100, 
-                                 mode='markers', marker=dict(color=c_dots, size=sz), showlegend=False),
-                      row=3, col=1)
-        days_ema, linAR_R2_ema = _emm_plot(days[start_index[i]+1:start_index[i+1]], linAR_R2[start_index[i]+1:start_index[i+1]], ema_skip)
-        fig.add_trace(go.Scatter(x=days_ema, y=linAR_R2_ema*100, mode='lines', line=dict(color=c_linAR), showlegend=False),
-                      row=3, col=1)
+        segment_days = days[start_index[i]+1:start_index[i+1]]
+        segment_linAR_R2 = linAR_R2[start_index[i]+1:start_index[i+1]] * 100
+        
+        # Plot the dots
+        fig.add_trace(go.Scatter(
+            x=segment_days,
+            y=segment_linAR_R2,
+            mode='markers',
+            marker=dict(color=c_dots, size=sz),
+            showlegend=False
+        ), row=3, col=1)
+        
+        sub_segments = []
+        
+        pre_dbs_mask = np.isin(segment_days, days[pre_DBS_idx])
+        if np.any(pre_dbs_mask):
+            sub_segments.append((segment_days[pre_dbs_mask], c_preDBS))
+        
+        if len(responder_idx) > 0:
+            responder_mask = np.isin(segment_days, days[responder_idx])
+            if np.any(responder_mask):
+                sub_segments.append((segment_days[responder_mask], c_responder))
+            
+            dots_mask = (~pre_dbs_mask & ~responder_mask)
+            if np.any(dots_mask):
+                sub_segments.append((segment_days[dots_mask], c_dots))
+        else:
+            non_responder_mask = ~pre_dbs_mask
+            if np.any(non_responder_mask):
+                sub_segments.append((segment_days[non_responder_mask], c_nonresponder))
+        
+        for sub_segment_days, color in sub_segments:
+            ema_mask = np.isin(days_ema_full, sub_segment_days)
+            sub_segment_ema_days = days_ema_full[ema_mask]
+            sub_segment_ema_values = linAR_R2_ema_full[ema_mask]
+            
+            fig.add_trace(go.Scatter(
+                x=sub_segment_ema_days,
+                y=sub_segment_ema_values,
+                mode='lines',
+                line=dict(color=color),
+                showlegend=False
+            ), row=3, col=1)
+
     fig.update_yaxes(title_text="Linear AR R² (%)", range=ylim_R2, row=3, col=1, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
     fig.update_xaxes(tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
 

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import utils
 
 def _weighted_median(values: np.ndarray, weights: np.ndarray) -> float:
     """
@@ -129,6 +130,7 @@ def plot_metrics(
             first_responder_day = zone_index['responder'][0][0]
             responder_start_idx = np.searchsorted(days, first_responder_day, side='left')
             responder_idx = np.arange(responder_start_idx, len(days))
+            non_responder_idx = np.where(days >= 0)[0]
         else:
             responder_idx = np.asarray([], dtype=int)
             non_responder_idx = np.where(days >= 0)[0]     
@@ -197,6 +199,7 @@ def plot_metrics(
                         line=dict(color=c_OG, width=1),
                         showlegend=False
                     ), row=1, col=1)
+                    
     fig.update_yaxes(title_text="9 Hz LFP (mV)", row=1, col=1, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
     fig.update_xaxes(tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
 
@@ -217,8 +220,9 @@ def plot_metrics(
     fig.update_yaxes(range=ylim_LFP, row=2, col=3, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
     fig.update_xaxes(range=post_DBS_bounds, row=2, col=3, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
 
+    linAR_R2_imputed = utils.fill_outliers(linAR_R2)
     # Linear AR R² Over Time
-    days_ema_full, linAR_R2_ema_full = _ema_plot(days, linAR_R2 * 100, ema_skip)
+    days_ema_full, linAR_R2_ema_full = _ema_plot(days, linAR_R2_imputed * 100, ema_skip)
     
     for i in range(len(start_index) - 1):
         segment_days = days[start_index[i]+1:start_index[i+1]]
@@ -268,9 +272,45 @@ def plot_metrics(
     fig.update_yaxes(title_text="Linear AR R² (%)", range=ylim_R2, row=3, col=1, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
     fig.update_xaxes(tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
 
+
     # Linear AR R² Violin Plot
-    fig.add_trace(go.Violin(y=linAR_R2[days < 0]*100, name="Pre-DBS", side='negative', line_color=c_linAR, showlegend=False),
-                  row=3, col=4)
+    VIOLIN_WIDTH = 7.0
+    fig.add_trace(go.Violin(
+            y=linAR_R2_imputed[pre_DBS_idx] * 100,
+            name='', 
+            side='negative', 
+            line_color=c_preDBS, 
+            fillcolor=c_preDBS,
+            showlegend=False,
+            width=VIOLIN_WIDTH,
+            meanline_visible=True, 
+            meanline=dict(color='black', width=2)
+        ), row=3, col=4)
+
+    if len(responder_idx) > 0:
+        fig.add_trace(go.Violin(
+            y=linAR_R2_imputed[non_responder_idx] * 100,  
+            side='positive', 
+            line_color=c_responder, 
+            fillcolor=c_responder,
+            showlegend=False,
+            width=VIOLIN_WIDTH,
+            meanline_visible=True, 
+            meanline=dict(color='white', width=2)
+        ), row=3, col=4)
+    else:
+        fig.add_trace(go.Violin(
+            y=linAR_R2_imputed[non_responder_idx] * 100, 
+            side='positive', 
+            line_color=c_nonresponder, 
+            fillcolor=c_nonresponder,
+            showlegend=False,
+            width=VIOLIN_WIDTH,
+            meanline_visible=True, 
+            meanline=dict(color='black', width=2)
+        ), row=3, col=4)
+
+
     fig.update_yaxes(range=ylim_R2, row=3, col=4, tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
     fig.update_xaxes(tickfont=dict(color=axis_title_font_color), titlefont=dict(color=axis_title_font_color), showline=True, linecolor=axis_line_color)
 

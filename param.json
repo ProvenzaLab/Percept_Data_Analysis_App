@@ -1,6 +1,6 @@
 {
     "dbs_date": "12-22-2023",
-    "responder_zone_idx": [],
+    "responder_zone_idx": [100, 250],
     "non_responder_idx": [],
     "subject_name": "009",
     "pre_DBS_example_days": [
@@ -11,8 +11,8 @@
         85,
         87
     ],
-    "hemisphere": 0,
+    "hemisphere": 1,
     "cosinor_window_left": 2,
     "cosinor_window_right": 2,
-    "include_nonlinear": 0
+    "include_nonlinear": false
 }

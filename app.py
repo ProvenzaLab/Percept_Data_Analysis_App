@@ -571,6 +571,8 @@ class Frame1(QWidget):
         self.parent.show_loading_screen(param_dict)
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method('spawn')
+    multiprocessing.freeze_support()
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

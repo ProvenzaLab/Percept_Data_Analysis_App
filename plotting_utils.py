@@ -222,7 +222,7 @@ def plot_metrics(
 
     linAR_R2_imputed = utils.fill_outliers(linAR_R2)
     # Linear AR R² Over Time
-    days_ema_full, linAR_R2_ema_full = _ema_plot(days, linAR_R2_imputed * 100, ema_skip)
+    days_ema_full, linAR_R2_ema_full = _emm_plot(days, linAR_R2_imputed * 100, ema_skip)
     
     for i in range(len(start_index) - 1):
         segment_days = days[start_index[i]+1:start_index[i+1]]

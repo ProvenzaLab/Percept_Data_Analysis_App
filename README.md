@@ -38,7 +38,7 @@ Data exporting is a key feature of the Percept Data Analysis App and was designe
 - If you specify an extension, the file will be saved in the corresponding format, unknown file formats will default `.csv`.
 
 ### Installation and Demo Video:
-- [https://drive.google.com/file/d/11onY-CnZtTEaFi3wRG0s5wXpyAupbPvG/view?usp=drive_link]
+- [Video](https://drive.google.com/file/d/1tWAAfF2GR7SGf6W4wstNonslh4T7LCWn/view?usp=sharing)
 
 
 ## Developer Guide

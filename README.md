@@ -37,8 +37,8 @@ Data exporting is a key feature of the Percept Data Analysis App and was designe
 - Similar to plot downloads, when you enter a filename in the file dialog without an extension, it will default to `.csv`.
 - If you specify an extension, the file will be saved in the corresponding format, unknown file formats will default `.csv`.
 
-### Demo video:
-- to be linked
+### Instillation and Demo Video:
+- [https://drive.google.com/drive/u/2/home]
 
 
 ## Developer Guide

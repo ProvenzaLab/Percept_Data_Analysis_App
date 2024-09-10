@@ -13,7 +13,6 @@ idna==3.8
 imageio==2.35.1
 Jinja2==3.1.4
 joblib==1.4.2
-kaleido==0.2.1
 kiwisolver==1.4.5
 macholib==1.16.3
 MarkupSafe==2.1.5
@@ -21,7 +20,7 @@ matplotlib==3.9.2
 mpmath==1.3.0
 multiprocess==0.70.16
 networkx==3.3
-numpy==2.0.0
+numpy==2.1.1
 ordered-set==4.1.0
 packaging==24.1
 pandas==2.2.2

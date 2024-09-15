@@ -111,7 +111,7 @@ If you've made changes to the app's source code and want to see those changes re
 
 The primary mode of distribution should be on Windows due to Apple's distribution regulations.
 
-1. Make GUI changes in `app_win.py`, which contains special code for Windows compatibility.
+1. Any GUI changes need to be made in `app_win.py`, which contains special code for Windows compatibility.
 2. Ensure PyInstaller is installed (included in `requirements.txt`).
 3. Modify `build_win.spec`:
    - Update the `datas` field with the local path to the `kaleido` package:
@@ -130,7 +130,7 @@ Optional: Wrap the `.exe` in an installer application (e.g., Inno Setup) for a s
 
 Note: The macOS build should not be used for distribution due to Apple's app distribution licensing. Follow these steps for local use only:
 
-1. Make GUI changes in `app.py`, which contains macOS-specific code.
+1. Any GUI changes need to be made in `app.py`, which contains macOS-specific code.
 2. Ensure PyInstaller is installed (included in `requirements.txt`).
 3. Modify `build_macOS.spec`:
    - Update the `datas` field with the local path to the `kaleido` package:

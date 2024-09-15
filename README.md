@@ -103,4 +103,45 @@ The GUI Interface is primarily built using two files: `app.py` and `gui_utils.py
 
 Documentation for the GUI component is minimal, as it is designed to serve as a flexible abstraction layer for the Core Analysis Pipeline. Developers are encouraged to customize the GUI to fit specific needs. The GUI can be replaced or modified, as long as it can interface with the Core Analysis Pipeline and correctly format the user-defined hyperparameters.
 
+### Building/Compiling the App
+
+If you've made changes to the app's source code and want to see those changes reflected, you need to recompile the app.
+
+#### Windows
+
+The primary mode of distribution should be on Windows due to Apple's distribution regulations.
+
+1. Make GUI changes in `app_win.py`, which contains special code for Windows compatibility.
+2. Ensure PyInstaller is installed (included in `requirements.txt`).
+3. Modify `build_win.spec`:
+   - Update the `datas` field with the local path to the `kaleido` package:
+     ```python
+     datas=[
+         ('your_path', 'kaleido'),
+     ],
+     ```
+4. Compile the app:
+   - Run `pyinstaller build_win.spec` in the command line/terminal from your source code directory.
+5. Find the generated `.exe` file in the `dist` folder.
+
+Optional: Wrap the `.exe` in an installer application (e.g., Inno Setup) for a smoother download experience.
+
+#### macOS
+
+Note: The macOS build should not be used for distribution due to Apple's app distribution licensing. Follow these steps for local use only:
+
+1. Make GUI changes in `app.py`, which contains macOS-specific code.
+2. Ensure PyInstaller is installed (included in `requirements.txt`).
+3. Modify `build_macOS.spec`:
+   - Update the `datas` field with the local path to the `kaleido` package:
+     ```python
+     datas=[
+         ('your_path', 'kaleido'),
+     ],
+     ```
+4. Compile the app:
+   - Run `pyinstaller build_macOS.spec` in the terminal from your source code directory.
+5. Find the generated `.app` file in the `dist` folder.
+6. Move the `.app` file to your Applications folder to run it natively on your Mac.
+
 

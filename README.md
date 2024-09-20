@@ -121,7 +121,7 @@ The primary mode of distribution should be on Windows due to Apple's distributio
      ],
      ```
 4. Compile the app:
-   - Run `pyinstaller build_win.spec` in the command line/terminal from your source code directory.
+   - Run `pyinstaller "build_win.spec"` in the command line/terminal from your source code directory.
 5. Find the generated `.exe` file in the `dist` folder.
 
 Optional: Wrap the `.exe` in an installer application (e.g., Inno Setup) for a smoother download experience.
@@ -140,7 +140,7 @@ Note: The macOS build should not be used for distribution due to Apple's app dis
      ],
      ```
 4. Compile the app:
-   - Run `pyinstaller build_macOS.spec` in the terminal from your source code directory.
+   - Run `pyinstaller "build_macOS.spec"` in the terminal from your source code directory.
 5. Find the generated `.app` file in the `dist` folder.
 6. Move the `.app` file to your Applications folder to run it natively on your Mac.
 

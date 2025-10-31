@@ -2,23 +2,36 @@
 
 ## Overview
 
-The Percept Desktop App is designed to provide an intuitive user interface for running the percept-data analysis pipeline for OCD patients, as detailed in this [paper](https://www.nature.com/articles/s41591-024-03125-0). The original program was developed using a combination of MATLAB and Python, as seen in the [PerceptDataAnalysis repository](https://github.com/shethlab/PerceptDataAnalysis). This application translates all the code into Python and uses a Python-based library to create the GUI. The source code and instructions for downloading the app can be found on this GitHub repo
+The Percept Desktop App is designed to provide an intuitive user interface for running the percept-data analysis pipeline for data collected from Medtronic Percept devices stored as BrainSense Timeline recordings, as detailed in this [paper](https://www.nature.com/articles/s41591-024-03125-0). The original program was developed using a combination of MATLAB and Python, as seen in the [PerceptDataAnalysis repository](https://github.com/shethlab/PerceptDataAnalysis) and includes updates to the autoregressive model and outlier handling methods as described in the the [PerceptArtifactAnalysis repository](https://github.com/ProvenzaLab/PerceptArtifactAnalysis). This application translates all the code into Python and uses a Python-based library to create the GUI. The source code and instructions for downloading the app can be found on this GitHub repository.
 
 ## User Manual
 
+The app may be installed as an executable or run as a python script. To install the app, download and run the Percept_app_installer.exe found in releases. This function is only available for Windows currently but Mac users can still run the app as a python script. To run the app as a python script, clone this repository, and create an environment with all the required packages to run the app. Use the `app_win.py` script for Windows systems and the `app.py` script for MacOS systems.
+
+### Dependencies
+
+- All required packages for the app are in requirements.txt run on Python version 3.13.5
+- Run `conda create -n "env name" python=3.13.5` to create an environment using Anaconda/Miniconda
+- Enter the environment: `conda activate "env name"`
+- Install all required packages using: `pip install -r requirements.txt`
+
+### General Workflow
+
+-  Store patients in the app's database with information listed in the required parameters below
+-  Process data (this step may take a couple minutes)
+-  Data visualization, displays plots from all patients originally added
+
 ### Key Fields
 
-- `Initial_DBS_programming_date`: The date the DBS treatment started, entered in the format MM-DD-YYYY.
 - `Subject_name`: The codename used to track a specific patient (e.g., '009').
-- `Pre_DBS_example_days`: Enter two dates before DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
-- `Post_DBS_example_days`: Enter two dates after DBS treatment to see the interval plotted, in the format MM-DD-YYYY, MM-DD-YYYY.
+- `Initial DBS programming date`: The date the DBS treatment started, entered in the format YYYY-MM-DD.
 - `Responder`: Indicates whether the subject has achieved clinical response as noted by YBOCS criteria (e.g., 'yes' or 'no').
-- `Responder_date`: If 'yes' was selected for Responder, provide the date when the patient reached clinical response in the format MM-DD-YYYY.
+- `Responder_date`: If 'yes' was selected for Responder, provide the date when the patient reached clinical response in the format YYYY-MM-DD or the # of days after the initial DBS programming date.
 
 ### Features
 - **Plot Metrics**: Displays various physiological and linear AR model metrics. More information can be found in the original paper linked above.
-- **Download Plot**: The app can download plots as a variety of different files formats using the "Download Plot" button.
-- **Export Data**: The raw linear-AR R2 values can be exported variety of different files formats using the “export linAR button”.
+- **Download Plot**: The app can download plots as a variety of different file formats using the "Download Plot" button.
+- **Export Data**: The raw linear-AR R2 values can be exported variety of different file formats using the “export linAR button”.
 
 ### Data Export Guide
 
@@ -37,9 +50,8 @@ Data exporting is a key feature of the Percept Data Analysis App and was designe
 - Similar to plot downloads, when you enter a filename in the file dialog without an extension, it will default to `.csv`.
 - If you specify an extension, the file will be saved in the corresponding format, unknown file formats will default `.csv`.
 
-### Installation and Demo Video:
-- A demo video showcasing the app can be found [here](https://drive.google.com/file/d/1tWAAfF2GR7SGf6W4wstNonslh4T7LCWn/view).
-
+### Demo Video:
+- A demo video showcasing the app can be found [here](https://drive.google.com/file/d/1lQqB9hKCxmDNotR2WSMLGGCxHG02cnSu/view?usp=sharing).
 
 ## Developer Guide
 
@@ -52,11 +64,14 @@ This section is intended for developers looking to modify or extend the function
 
 The Core Analysis Pipeline consists of the following key files:
 
-- `generate_data.py`: Generates a data_struct from Medtronic Percept data files, which is used in subsequent analyses.
-- `calc_circadian.py`: Processes the data_struct to append basic statistical results (e.g., cosinor analysis, sample entropy).
-- `calc_circadian_advanced.py`: Processes the data_struct to append advanced statistical results (e.g., linear AR, nonlinear AR).
+- `generate_raw.py`: Generates a pandas DataFrame from Medtronic Percept json data files, which is used in subsequent analyses.
+- `process_data.py`: Processes the data_struct to clean, normalize, and z-score. Different artifact removing techniques are implemented and can be specified in the app settings.
+- `model_data.py`: Analyzes the processed_data DataFrame to perform AR(1) predictions and calculate predictability metrics (r2, residual variance, etc.).
 - `plotting_utils.py`: Generates a summary plot encapsulating the most critical information from the processed data_struct.
-- `utils.py`: Provides various helper methods utilized by the above files.
+- `utils.py`: Provides various general helper methods utilized by the above files.
+- `json_utils.py`: Provides helper methods to process the Medtronic Percept json data files.
+- `state_utils.py`: Provides helper methods to determine clinical states from patient dates.
+- `model_utils.py`: Provides helper methods to apply the autoregression model to the data.
 
 #### User Defined Hyper-Parameters
 
@@ -64,33 +79,34 @@ To run the Core Analysis Pipeline, users must specify certain hyperparameters, d
 
 **Required Parameters:**
 
-- `dbs_date`: The start date of DBS treatment, in the format MM-DD-YYYY.
 - `subject_name`: A codename for tracking a specific patient (e.g., '009').
-- `responder_zone_idx`: A tuple containing two values: (responder_date - `dbs_date`, current_date - responder_date). Use an empty tuple if the patient is a non-responder.
-- `non_responder_idx`: A tuple containing two values: (0, current_date - `dbs_date`). Use an empty tuple if the patient is a responder.
-- `pre_DBS_example_days`: A tuple with two integers representing an interval (relative to `dbs_date`) to be displayed in the pre-DBS zoomed subplot generated by `plot_metrics.py`. For example, if `pre_dbs_example_days` is [-12, -9] and `dbs_date` is 12-22-2023, the zoomed interval is [12-10-2023, 12-13-2023].
-- `post_DBS_example_days`: A tuple with two integers representing an interval (relative to `dbs_date`) to be displayed in the post-DBS zoomed subplot generated by `plot_metrics.py`. For example, if `post_dbs_example_days` is [85, 87] and `dbs_date` is 12-22-2023, the zoomed interval is [03-16-2024, 03-18-2024].
-- `hemisphere`: An integer representing the hemisphere being plotted in `plot_metrics.py` (0 for the left hemisphere, 1 for the right hemisphere).
+- `directory`: A selection window will appear after entering in patient information. Select the parent directory containing all of the patient's JSON data files.
+- `dbs_date`: The start date of DBS treatment, in the format YYYY-MM-DD.
+- `response_status`: The response status of the patient if known. If unknown, default to non-response.
+- `response_date`: The response date of the patient, if applicable, in YYYY-MM-DD format or enter the # of days after DBS activation.
+- `disinhibited_dates`: The disinhibited dates of the patient, if applicable, in [start date, end date] format with dates in YYYY-MM-DD format, or enter the # of days after DBS activation
+
+Example values for these parameters are provided in `patient_info.json`.
 
 **Optional Parameters:**
 
-- `cosinor_window_left`: An integer representing the number of days before the day of interest to include in the cosinor calculation window. Default value is `2`.
-- `cosinor_window_right`: An integer representing the number of days after the day of interest to include in the cosinor calculation window. Default value is `2`.
-- `include_nonlinear`: A boolean flag indicating whether to run the non-linear analysis (neural net). Default value is `False`.
+- `window_size`: Window size of data, in days, to train and test the autoregressive model. Specified as the total number of days in the sliding window.
+- `outlier_fill_method`: Outlier interpolation method used during processing (Naive, Threshold, Overages).
+- `delta`: Applies a baseline normalization to the R² feature. The average of pre-DBS R² values is subtracted from all data points.
+- `ark`: Choose to apply an AR(k) model to fit to the data instead of the default AR(1) model.
+- `lags`: Enter the number of lag terms to use in the model. Only applies to the AR(k) model.
 
-Example values for these parameters are provided in `param.json`.
+These parameters can be adjusted in the app's settings menu.
 
 #### Running the Core Analysis Pipeline
 
 Typically, the Core Analysis Pipeline is executed in the following order:
 
-1. `generate_data.py`
-2. `calc_circadian.py`
-3. `plotting_utils.py`
+1. `generate_raw.py`
+2. `process_data.py`
+3. `model_data.py`
 
-The `calc_circadian_advanced.py` script is implicitly called within `calc_circadian.py`.
-
-For a simple example of running this execution pipeline, refer to `terminal_runner.py`. This file provides a basic script to run the data analysis and display the plots generated by `plotting_utils.py`. To modify the hyperparameters, update them in `param.json`.
+For a simple example of running this execution pipeline, refer to `terminal_runner.py`. This file provides a basic script to run the data analysis and display the plots generated by `plotting_utils.py`. To modify the hyperparameters, update them in `patient_info.json`.
 
 For specific implementation details, refer to the documentation and comments within these scripts.
 
@@ -102,6 +118,8 @@ The GUI Interface is primarily built using two files: `app.py` and `gui_utils.py
 - `gui_utils.py`: A utility file used by `app.py` to perform tasks such as data export, validation, and transformations.
 
 Documentation for the GUI component is minimal, as it is designed to serve as a flexible abstraction layer for the Core Analysis Pipeline. Developers are encouraged to customize the GUI to fit specific needs. The GUI can be replaced or modified, as long as it can interface with the Core Analysis Pipeline and correctly format the user-defined hyperparameters.
+
+Run the app GUI in terminal before compiling using the simply python run command, `python ./app_win.py` to test functionality.
 
 ### Building/Compiling the App
 

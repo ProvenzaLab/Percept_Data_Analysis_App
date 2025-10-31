@@ -5,7 +5,13 @@ a = Analysis(
     ['app.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ("C:/Users/Zion/anaconda3/envs/percept_build/Lib/site-packages/kaleido", 'kaleido'),
+        ('icons/*.ico', 'icons'),
+        ('data/*.json', 'data'),
+        ('src/*.py', 'src'),
+        ('utils/*.py', 'utils')
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

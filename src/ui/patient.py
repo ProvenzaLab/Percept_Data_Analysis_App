@@ -1,3 +1,5 @@
+"""Patient database UI (add / delete / list patients)."""
+
 from PySide6.QtWidgets import (
     QWidget,
     QLabel,
@@ -23,6 +25,12 @@ from pathlib import Path
 
 
 class PatientMenu(QWidget):
+    """Side panel listing patients stored in ``data/patient_info.json``.
+
+    Provides Add and Delete dialogs. Adding a patient opens a directory
+    picker so the app can locate the patient's JSON files later.
+    """
+
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
@@ -32,7 +40,7 @@ class PatientMenu(QWidget):
             "dbs_date",
             "response_status",
             "response_date"
-            #"disinhibited_dates",
+            # "disinhibited_dates",
         ]
         self.tooltips = self.get_tooltips()
         self.initUI()
@@ -221,7 +229,7 @@ class PatientMenu(QWidget):
                     pt_dict[patient]["response_date"] = int(
                         pt_dict[patient]["response_date"]
                     )
-                except Exception:
+                except (TypeError, ValueError):
                     QMessageBox.warning(
                         dialog,
                         "Validation Error",

@@ -24,68 +24,8 @@ default_colors = np.array(["gold", "r", "orange", "b", "gray", "darkgray"]).asty
 )
 
 
-def predict_series_and_calc_R2_Kfold(
-    group: pd.DataFrame, ar_features: list, gt_colname: str
-):
-    """
-    Fits autoregressive AR(1) model to day's data, then tests with Kfolds and returns predictions, daily R2 scores, and prediction residuals.
-
-    Parameters:
-    - master_df (pd.DataFrame): A DataFrame containing processed data including state labels.
-    - ar_features (list): A list of features to use for autoregression. If not None, this will be used instead of the num_lags parameter.
-    - gt_colname (str): Name of the column for the feature the model is being trained to predict.
-    """
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
-    preds_colname = gt_colname.replace("z_scored", "preds")
-    residuals_colname = gt_colname.replace("z_scored", "residuals")
-    r2_colname = gt_colname.replace("z_scored", "day_r2")
-    res_var_colname = gt_colname.replace("z_scored", "residual_var")
-    results_df = pd.DataFrame(
-        np.nan,
-        index=group.index,
-        columns=[preds_colname, residuals_colname, r2_colname, res_var_colname],
-    )
-
-    group_no_na = group.dropna(subset=ar_features + [gt_colname])
-    if group_no_na.shape[0] < (
-        144 // 2
-    ):  # if we have less than half a day's worth of data, just skip it
-        return results_df
-
-    for train_inds, test_inds in kf.split(group_no_na):
-        # Split data into training and testing sets based on the fold.
-        train = group_no_na.iloc[train_inds]
-        test = group_no_na.iloc[test_inds]
-
-        model = sm.OLS(train[gt_colname], train[ar_features]).fit()
-
-        # Generate predictions for the test data using the fitted model.
-        preds = model.predict(test[ar_features])
-
-        # Save predictions to dataframe
-        results_df.loc[test.index, preds_colname] = preds.values
-
-    # Calculate daily R² and residuals from the predictions
-    residuals = results_df[preds_colname] - group[gt_colname]
-    results_df[residuals_colname] = residuals
-    results_df[r2_colname] = r2_score(
-        group_no_na[gt_colname], results_df.loc[group_no_na.index, preds_colname]
-    )
-    results_df[res_var_colname] = residuals.var()
-    return results_df
-
-
-def predict_series_and_calc_R2_sliding_window(
-    group: pd.DataFrame,
-    ar_features: list,
-    gt_colname: str,
-    test_date: date,
-    window_size: int = 3,
-    timestamp_col: str = "CT_timestamp",
-    threshold: float = 2.5,
-    ark: bool = False,
-    use_constant: bool = False
-):
+def predict_series_calc_R2(group: pd.DataFrame, ar_features: list, gt_colname: str, test_day: int,
+                           new_cols: dict, window_size: int=3):
     """
     Fits autoregressive AR(1) model to data, then tests on a single day and returns predictions, daily R2 scores, prediction residuals, and residual variance.
 
@@ -93,190 +33,148 @@ def predict_series_and_calc_R2_sliding_window(
     - group (pd.DataFrame): A DataFrame containing processed data including state labels.
     - ar_features (list): A list of features to use for autoregression. If not None, this will be used instead of the num_lags parameter.
     - gt_colname (str): Name of the column for the feature the model is being trained to predict.
-    - test_date (date): The date to test the model on.
+    - test_day (int): The day # (since DBS) to test the model on.
     - window_size (int): The size of the sliding window to use.
-    - timestamp_col (str): The name of the column containing the timestamps in the group DataFrame.
-    - threshold (float): Threshold for residuals to calculate lambda, mu, and sigma stats.
+
+    Returns:
+    - results_df (pd.DataFrame): A DataFrame containing predictions, daily R2 scores, prediction residuals, residual variance, and other spiking parameters.
     """
 
-    all_dates = group[timestamp_col].dt.date
-    unique_dates = all_dates.unique()
+    all_days = group['days_since_dbs']
+    unique_days = all_days.unique()
+    
+    test_df = group[all_days == test_day]
+    train_df = group[all_days != test_day]
 
-    test_df = group[all_dates == test_date]
-    train_df = group[all_dates != test_date]
+    results_df = pd.DataFrame(np.nan, index=test_df.index, columns=new_cols.values())
+    
+    if (unique_days[-1] - unique_days[0] != (window_size-1)) or (len(unique_days) != window_size): # Skip non-contiguous days
+        return None
+    
+    train_df_no_na = train_df.dropna(subset=ar_features+[gt_colname])
+    test_df_no_na = test_df.dropna(subset=ar_features+[gt_colname])
+    if train_df_no_na.shape[0] < ((24 * 6) * (window_size - 2) + 1) or test_df_no_na.shape[0] < (24 * 6 // 2): # If we don't have enough data, just skip this day.
+        return None
 
-    preds_colname = gt_colname.replace("z_scored", "preds")
-    residuals_colname = gt_colname.replace("z_scored", "residuals")
-    r2_colname = gt_colname.replace("z_scored", "day_r2")
-    res_var_colname = gt_colname.replace("z_scored", "residual_var")
-    sigma25_colname = gt_colname.replace("z_scored", "sigma_25")
-    mu0_colname = gt_colname.replace("z_scored", "mu_0")
-    mu25_colname = gt_colname.replace("z_scored", "mu_25")
-    lambda25_colname = gt_colname.replace("z_scored", "lambda_25")
+    if len(ar_features) > 1: # Select significant lags if using LinAR-k model
+        sig_lags = ar_features.copy()
+        sig_lags = select_lags_full_pipeline(train_df_no_na, ar_features, gt_colname, n_splits=5, fold_threshold=3)
+        ar_features = sig_lags
 
-    results_df = pd.DataFrame(
-        np.nan,
-        index=test_df.index,
-        columns=[
-            preds_colname,
-            residuals_colname,
-            r2_colname,
-            res_var_colname,
-            sigma25_colname,
-            mu0_colname,
-            mu25_colname,
-            lambda25_colname,
-        ],
-    )
-
-    if (
-        unique_dates[-1] - unique_dates[0] > timedelta(days=window_size)
-        or len(unique_dates) < 2
-    ):  # Skip non-contiguous days
-        return results_df
-
-    group_clean = group.copy()
-    group_clean[ar_features] = group_clean[ar_features].fillna(0)
-    window_df = group_clean.dropna(subset=ar_features + [gt_colname])
-    train_df_no_na = window_df[window_df[timestamp_col].dt.date != test_date]
-    test_df_no_na = window_df[window_df[timestamp_col].dt.date == test_date]
-
-    if train_df_no_na.shape[0] < 144 or test_df_no_na.shape[0] < (
-        24 * 6 // 2
-    ):  # If we don't have enough data, just skip this day.
-        return results_df
-
-    # if ark calculate significant lags on training data only
-    sig_lags = ar_features.copy()
-    if ark:
-        try:
-            sig_lags = select_significant_lags_kfold(
-                                train_df_no_na, ar_features, gt_colname
-                            )
-        except Exception:
-            sig_lags = select_significant_lags_kfold(train_df_no_na, ar_features, gt_colname, n_splits=2, threshold=1)
-    if use_constant:
-        sig_lags.append("constant")
-
-    model = sm.OLS(train_df_no_na[gt_colname], train_df_no_na[sig_lags]).fit()
+    model = sm.OLS(train_df_no_na[gt_colname], train_df_no_na[ar_features]).fit()
+    phi_1 = model.params[ar_features[0]]
 
     # Generate predictions for the test data using the fitted model.
-    preds = model.predict(test_df_no_na[sig_lags])
+    preds = model.predict(test_df_no_na[ar_features])
 
     # Save predictions to dataframe
-    results_df.loc[test_df_no_na.index, preds_colname] = preds.values
+    results_df.loc[test_df_no_na.index, new_cols['preds']] = preds.values
 
-    # Calculate daily R² and residuals from the predictions
-    residuals = preds - test_df_no_na[gt_colname]
+    # Save phi_1 to dataframe
+    results_df.loc[test_df_no_na.index, new_cols['phi_1']] = phi_1
 
-    results_df.loc[test_df_no_na.index, residuals_colname] = residuals
+    # Calculate all features from the predictions
+    residuals = results_df[new_cols['preds']] - test_df[gt_colname]
+    abs_residuals = np.abs(residuals)
+    metrics_to_compute = {
+        'residuals': lambda: residuals,
+        'R2': lambda: r2_score(
+            test_df_no_na[gt_colname],
+            results_df.loc[test_df_no_na.index, new_cols['preds']]
+        ),
+    }
 
-    results_df[r2_colname] = r2_score(
-        test_df_no_na[gt_colname], results_df.loc[test_df_no_na.index, preds_colname]
-    )
-    results_df[res_var_colname] = residuals.var()
-    results_df[sigma25_colname] = residuals[residuals > threshold].var()
-    results_df[mu0_colname] = residuals.mean()
-    results_df[mu25_colname] = residuals[residuals > threshold].mean()
-    results_df[lambda25_colname] = residuals[residuals > threshold].count()
+    for name, func in metrics_to_compute.items():
+        if name in new_cols:
+            results_df[new_cols[name]] = func()
     return results_df
 
-
-def apply_sliding_window(
-    g, ar_features: list, gt_colname: str, window_size: int = 3, causal=False, ark: bool =False, use_constant: bool=False
-):
-    """
+def apply_sliding_window(g, ar_features: list, gt_colname: str, window_size: int=3):
+    '''
     Apply a sliding window to a groupby object and return a DataFrame with the results of the sliding window.
 
     Parameters:
-    - g (pd.DataFrame): A DataFrame containing processed data including state labels.
+    - g (pd.DataFrame): A DataFrame containing processed data including state labels from a single lead.
     - ar_features (list): A list of features to use for autoregression. If not None, this will be used instead of the num_lags parameter.
     - gt_colname (str): Name of the column for the feature the model is being trained to predict.
     - window_size (int): The size of the sliding window to use.
-    - causal (bool): Whether to use a causal sliding window (i.e., only use past data, put test date at end of window) or put test date in middle of window.
-    """
-    if not causal and (window_size % 2 != 1 or window_size <= 1):
-        raise ValueError(
-            "Window size must be odd number greater than 1 for a causal model."
-        )
-    unique_dates = g["CT_timestamp"].dt.date.unique()
+    '''
+    g = g.dropna(subset=gt_colname).copy()
+
+    new_cols = {
+        'phi_1': gt_colname.replace('z_scored', 'phi_1'),
+        'preds': gt_colname.replace('z_scored', 'preds'),
+        'residuals': gt_colname.replace('z_scored', 'residuals'),
+        'R2': gt_colname.replace('z_scored', 'R2'),
+    }
+
+    if g.empty:
+        return None
+    unique_dates = g['days_since_dbs'].unique()
     results = []
 
     for this_date in unique_dates:
-        if causal:
-            td_arr = np.array(
-                [pd.Timedelta(days=i) for i in range(-window_size + 1, 1)]
-            )
-        else:
-            td_arr = np.array(
-                [
-                    pd.Timedelta(days=i)
-                    for i in range(-(window_size // 2), window_size // 2 + 1)
-                ]
-            )
-        date_list = this_date + td_arr
-        date_mask = g["CT_timestamp"].dt.date.isin(date_list)
+        td_arr = np.arange(-window_size+1, 1)
+        date_list = td_arr + this_date
+        day_mask = g['days_since_dbs'].isin(date_list)
 
-        window = g[date_mask]
-        if window.empty or window[gt_colname].dropna().empty:
-            continue
+        window = g[day_mask]
+        day_results = predict_series_calc_R2(window, ar_features, gt_colname, this_date, new_cols, window_size)
+        if day_results is not None:
+            results.append(day_results)
+    return pd.concat(results) if len(results) > 0 else None
 
-        day_results = predict_series_and_calc_R2_sliding_window(
-            window, ar_features, gt_colname, this_date, window_size, ark=ark, use_constant=use_constant
-        )
-        results.append(day_results)
-
-    if len(results) == 0:
-        return
-
-    return pd.concat(results)
-
-
-def select_significant_lags_kfold(
-    df, lag_features, target_col, n_splits=5, p_thresh=0.05, threshold=3
-):
-    df = df.dropna(subset=lag_features + [target_col])
-    if df.empty:
-        return []
-
+def select_significant_lags_kfold(df, lag_features, target_col, n_splits=5, p_thresh=0.05, threshold=3):
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
     pval_counts = {lag: 0 for lag in lag_features}
 
     for train_idx, _ in kf.split(df):
         train_data = df.iloc[train_idx]
-        X = train_data[lag_features]
+        X = sm.add_constant(train_data[lag_features])
         y = train_data[target_col]
-        X = sm.add_constant(X)
         model = sm.OLS(y, X).fit()
         for lag in lag_features:
             if lag in model.pvalues and model.pvalues[lag] < p_thresh:
                 pval_counts[lag] += 1
 
-    # Select lags significant in ≥half the folds
-    return [lag for lag, count in pval_counts.items() if count >= threshold]
+    return [lag for lag, count in pval_counts.items() if count > threshold]
 
 
-def drop_sparse_lags(
-    df: pd.DataFrame, lag_features: list, threshold: float = 0.5
-) -> list:
-    """
-    Drop lag features that are more than `threshold` percent NaN.
+def select_lags_full_pipeline(df, lag_features, target_col, n_splits=5, p_thresh=0.05,
+                               fold_threshold=3, max_iter=20, verbose=False):
+    df = df.dropna(subset=lag_features + [target_col]).copy()
+    candidates = list(lag_features)
 
-    Parameters:
-    - df: the DataFrame containing lag features
-    - lag_features: list of lag column names
-    - threshold: max allowed NaN fraction (e.g., 0.5 keeps features with ≥50% non-NaN)
+    for i in range(max_iter):
+        if not candidates:
+            return [lag_features[0]] # Default to 1 lag term (AR-1)
 
-    Returns:
-    - A filtered list of lag features to keep
-    """
-    keep_lags = []
-    for col in lag_features:
-        valid_frac = df[col].notna().mean()
-        if valid_frac >= threshold:
-            keep_lags.append(col)
-    return keep_lags
+        selected = select_significant_lags_kfold(
+            df, candidates, target_col, n_splits, p_thresh, fold_threshold
+        )
+        if not selected:
+            if verbose:
+                print(f"Iteration {i}: no lags survived k-fold screening.")
+            return [lag_features[0]] # Default to 1 lag term (AR-1)
 
+        X_full = sm.add_constant(df[selected])
+        full_model = sm.OLS(df[target_col], X_full).fit()
+        non_sig = [lag for lag in selected if full_model.pvalues.get(lag, 1) >= p_thresh]
+
+        if not non_sig:
+            if verbose:
+                print(f"Converged after {i+1} iteration(s): {selected}")
+            return selected
+
+        if verbose:
+            print(f"Iteration {i}: dropping {non_sig} (non-significant on full data)")
+        candidates = [lag for lag in selected if lag not in non_sig]
+
+    if verbose:
+        print("Max iterations reached without full convergence.")
+
+
+    return candidates if len(candidates) > 0 else [lag_features[0]] # Default to 1 lag term (AR-1)
 
 def leave_one_patient_out_logistic_regression(
     df: pd.DataFrame,

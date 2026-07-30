@@ -53,9 +53,9 @@ Process all raw LFP data. Remove duplicate data readings, interpolate outliers a
 
 ### 3. Model Data
 
-An autoregressive (AR) model is used to predict the LFP data. The model is applied to each patient's neural data with a sliding window of size *n* and a 1-day stride. The model can be entirely causal by training on the previous *n*-1 days' of neural data and predicting the window's last day of neural data. The model can also be applied as a non-causal method where the model is trained on neural data from the days flanking the window's center day and predicting that center day's neural data. 
+An autoregressive (AR) model is used to predict the LFP data. The model is applied to each patient's neural data with a causal sliding window of size *n* and a 1-day stride, training on the previous *n*-1 days' of neural data and predicting the window's last day of neural data. Only fully contiguous windows are used — if any day within the window is missing, that day is skipped rather than predicted from a partial window.
 
-If an AR(k) model is used, significant lag terms are determined using an *n*-fold cross-validation with an ordinary least squares regression model. For each fold of the cross-validation, significant lag terms (*p* < 0.05) were recorded. If the lag term was significant for more than half the folds, then the lag term was deemed significant. The default number of folds is 5. Lag terms with more than 50% `nan` values were dropped. 
+If an AR(k) model is used, significant lag terms are determined for each window individually: candidate lags are first screened with an *n*-fold cross-validated ordinary least squares regression, keeping any lag term significant (*p* < 0.05) in more than `threshold` (default 3) of the folds. The surviving lags are then refit together on the window's full training data, and any lag no longer significant there is dropped, repeating until every remaining lag is significant or no lags survive — in which case the model falls back to AR(1). The default number of folds is 5.
 
 The R² of the z-scored LFP data and the AR predicted data is calculated. 
 

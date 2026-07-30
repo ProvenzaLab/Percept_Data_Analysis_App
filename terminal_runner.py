@@ -5,7 +5,7 @@ import numpy as np
 from datetime import time as dttime
 import os
 
-# Export R² and Residual stats
+# Export R² and raw-variance stats
 def export_res_stats(df_final, filename):
     pt_summary_stats = {}
 
@@ -22,11 +22,6 @@ def export_res_stats(df_final, filename):
         pt_df["days_since_dbs"] = pt_data["days_since_dbs"]
         pt_df["State_Label"] = pt_data["state_label"]
         pt_df["r2"] = pt_data["lfp_left_day_r2_OvER"]
-        pt_df["res_var"] = pt_data["lfp_left_residual_var_OvER"]
-        pt_df["lambda_2.5"] = pt_data["lfp_left_lambda_25_OvER"]
-        pt_df["mu_0"] = pt_data["lfp_left_mu_0_OvER"]
-        pt_df["mu_2.5"] = pt_data["lfp_left_mu_25_OvER"]
-        pt_df["sigma_2.5"] = pt_data["lfp_left_sigma_25_OvER"]
         pt_df["raw_var"] = [
             np.nanvar(
                 df_final.query(

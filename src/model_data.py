@@ -7,7 +7,6 @@ import json
 def model_data(
     df: pd.DataFrame,
     window_size=3,
-    causal=True,
     use_constant=False,
     ark=False,
     max_lag=144,
@@ -67,16 +66,14 @@ def model_data(
             df_w_preds, hemi2_results_df, how="outer", left_index=True, right_index=True
         )
     else:
+        # Causal sliding window per PerceptExtendedPaper/PerceptPredictability/
+        # ar_model_utils.py: no constant/intercept in the final fit; AR(1) vs.
+        # AR(k) is implicit in apply_sliding_window from len(ar_features).
         for hemi in hemis:
             lag_prefix = f"lfp_{hemi}_z_scored_{model}_lag_"
             all_lags = [f"{lag_prefix}{i}" for i in range(1, max_lag + 1)]
             ar_features = (
-                (
-                    [f"lfp_{hemi}_z_scored_{model}_lag_1"]
-                    + (["constant"] if use_constant else [])
-                )
-                if not ark
-                else all_lags.copy()
+                [f"lfp_{hemi}_z_scored_{model}_lag_1"] if not ark else all_lags.copy()
             )
             target = f"lfp_{hemi}_z_scored_{model}"
 
@@ -84,10 +81,10 @@ def model_data(
             pt_groups = df_w_preds.groupby(
                 ["pt_id", "lead_location"], group_keys=False
             )
-            
+
             hemi_results_df = pt_groups.apply(
             lambda g: model_utils.apply_sliding_window(
-                g, ar_features, target, window_size=window_size, causal=causal, ark=ark, use_constant=use_constant
+                g, ar_features, target, window_size=window_size
             ), include_groups=False)
 
             df_w_preds = pd.merge(

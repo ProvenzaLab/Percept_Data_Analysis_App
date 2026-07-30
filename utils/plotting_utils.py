@@ -9,7 +9,6 @@ import scipy.stats as stats
 C_PRE_DBS = "rgba(255, 215, 0, 0.5)"
 C_REPSONDER = "rgba(0, 0, 255, 1)"
 C_NON_RESPONDER = "rgba(255, 185, 0, 1)"
-C_DISINHIBITED = "#ff0000"
 C_DOTS = "rgba(128, 128, 128, 0.5)"
 C_PRED = "rgba(51, 160, 44, 1)"
 C_RAW = "rgba(128, 128, 128, 0.7)"
@@ -250,7 +249,6 @@ def plot_metrics(
 
     color_dict = {
         0: C_PRE_DBS,
-        1: C_DISINHIBITED,
         2: C_NON_RESPONDER,
         3: C_REPSONDER,
         4: C_DOTS,
@@ -398,10 +396,11 @@ def plot_metrics(
         showline=True,
         linecolor=axis_line_color,
     )
-    # Set overall layout aesthetics
+    # Set overall layout aesthetics. No fixed height/width: the figure is
+    # rendered responsively (see gui_utils.create_temp_plot) so it resizes
+    # with the QWebEngineView/window rather than staying a fixed pixel size.
     fig.update_layout(
-        height=650,
-        width=900,
+        autosize=True,
         showlegend=True,
         legend=dict(
             x=0.85,

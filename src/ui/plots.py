@@ -53,7 +53,11 @@ class Plots(QWidget):
             with open(get_data_path("data\\patient_info.json")) as f:
                 self.patient_dict = json.load(f)
 
-        self.curr_pt = list(self.patient_dict.keys())[0]
+        # The dropdown only lists patients actually present in df_final, not
+        # every patient in the database — some may not have been selected
+        # for processing (or may have failed to process).
+        self.available_patients = sorted(self.df_final["pt_id"].unique())
+        self.curr_pt = self.available_patients[0]
         self.hemisphere = "left"
         self.current_plot = None
         self.web_view = QWebEngineView(self)
@@ -84,7 +88,7 @@ class Plots(QWidget):
 
         # Patient selector
         self.patient_selector = QComboBox(self)
-        self.patient_selector.addItems(self.patient_dict.keys())
+        self.patient_selector.addItems(self.available_patients)
         self.patient_selector.setCurrentIndex(index)
         self.patient_selector.currentIndexChanged.connect(self.patient_change)
         self.json_layout.addWidget(self.patient_selector)
@@ -194,7 +198,7 @@ class Plots(QWidget):
         )
 
     def patient_change(self, index):
-        self.curr_pt = list(self.patient_dict.keys())[index]
+        self.curr_pt = self.available_patients[index]
         self.refresh_patient_view()
 
     def on_hemisphere_change(self, index):

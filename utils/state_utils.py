@@ -20,7 +20,6 @@ def get_state_labels(pt_df: pd.DataFrame, patient_dict: dict):
     Calculate the patient's state at each time point based on their scale scores.
     State key:
         0 = Pre-DBS
-        1 = Disinhibited
         2 = Non-responder
         3 = Responder
         4 = Unknown
@@ -57,30 +56,5 @@ def get_state_labels(pt_df: pd.DataFrame, patient_dict: dict):
     else:
         pt_df.loc[pt_df["days_since_dbs"] >= 0, "state_label"] = 2  # Non-responder
         pt_df.loc[pt_df["days_since_dbs"] >= 0, "state_label_str"] = "Non-responder"
-
-    try:
-        disinhibited_dates = patient_dict["disinhibited_dates"]
-        for i, date in enumerate(disinhibited_dates):
-            if type(date) != int:
-                date = datetime.strptime(date, "%Y-%m-%d").date()
-                date = (date - get_dbs_on_date(patient_dict)).days
-                disinhibited_dates[i] = date
-
-        pt_df.loc[
-            (
-                (pt_df["days_since_dbs"] >= disinhibited_dates[0])
-                & (pt_df["days_since_dbs"] <= disinhibited_dates[1])
-            ),
-            "state_label",
-        ] = 1  # Disinhibited
-        pt_df.loc[
-            (
-                (pt_df["days_since_dbs"] >= disinhibited_dates[0])
-                & (pt_df["days_since_dbs"] <= disinhibited_dates[1])
-            ),
-            "state_label_str",
-        ] = "Disinhibited"
-    except Exception:
-        pass
 
     return pt_df

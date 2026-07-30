@@ -315,7 +315,7 @@ def leave_one_patient_out_logistic_regression(
         test_df = df[df["pt_id"] == patient].copy()  # Held-out patient
 
         # Filter out unknown and transition labels
-        bad_labels = ["Unknown", "Transition", "Disinhibited"]
+        bad_labels = ["Unknown", "Transition"]
         train_df.query(f"state_label_str not in @bad_labels", inplace=True)
         test_df.query(f"state_label_str not in @bad_labels", inplace=True)
 

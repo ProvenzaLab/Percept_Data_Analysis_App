@@ -85,7 +85,6 @@ To run the Core Analysis Pipeline, users must specify certain hyperparameters, d
 - `dbs_date`: The start date of DBS treatment, in the format YYYY-MM-DD.
 - `response_status`: The response status of the patient if known. If unknown, default to non-response.
 - `response_date`: The response date of the patient, if applicable, in YYYY-MM-DD format or enter the # of days after DBS activation.
-- `disinhibited_dates`: The disinhibited dates of the patient, if applicable, in [start date, end date] format with dates in YYYY-MM-DD format, or enter the # of days after DBS activation
 
 Example values for these parameters are provided in `data/patient_info.json`.
 

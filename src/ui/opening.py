@@ -107,7 +107,9 @@ class OpeningScreen(QWidget):
         if len(patient_dict) == 0:
             QMessageBox.warning(self, "Validation Error", "No patient data is stored")
             return False
-        self.parent.show_loading_screen(patient_dict)
+        # Patient selection (which patients to actually process) happens in
+        # the Patient menu, via its checkboxes + "Process Selected" button.
+        self.parent.show_patient_menu()
         return True
 
 

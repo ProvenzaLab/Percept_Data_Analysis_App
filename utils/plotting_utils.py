@@ -14,7 +14,7 @@ C_PRED = "rgba(51, 160, 44, 1)"
 C_RAW = "rgba(128, 128, 128, 0.7)"
 
 
-def _percentile_axis_range(values, lower=1, upper=99, pad_frac=1):
+def _percentile_axis_range(values, lower=2, upper=98, pad_frac=1):
     """Axis range spanning the central 95% of ``values`` (by default), with a
     small padding, so a handful of extreme outliers don't stretch the axis and
     squash the bulk of the data.

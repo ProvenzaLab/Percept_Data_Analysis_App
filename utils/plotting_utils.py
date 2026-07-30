@@ -14,6 +14,32 @@ C_PRED = "rgba(51, 160, 44, 1)"
 C_RAW = "rgba(128, 128, 128, 0.7)"
 
 
+def _percentile_axis_range(values, lower=2, upper=98, pad_frac=1):
+    """Axis range spanning the central 95% of ``values`` (by default), with a
+    small padding, so a handful of extreme outliers don't stretch the axis and
+    squash the bulk of the data.
+
+    Trims by point count (rather than interpolated percentile value) so that a
+    single extreme outlier is fully excluded even when there are few data
+    points -- ``np.nanpercentile``'s linear interpolation would otherwise blend
+    the outlier's value into the boundary. Returns None (let Plotly
+    auto-range) if there isn't enough finite data to compute a meaningful
+    range.
+    """
+    arr = np.asarray(values, dtype=float)
+    arr = np.sort(arr[np.isfinite(arr)])
+    n = arr.size
+    if n < 2:
+        return None
+    lo_trim = min(int(round(n * lower / 100)), n - 1)
+    hi_trim = min(int(round(n * (100 - upper) / 100)), n - 1 - lo_trim)
+    lo, hi = arr[lo_trim], arr[n - 1 - hi_trim]
+    if lo == hi:
+        return None
+    pad = (hi - lo) * pad_frac
+    return [lo - pad, hi + pad]
+
+
 def plot_metrics(
     df: pd.DataFrame,
     patient: str,
@@ -213,6 +239,14 @@ def plot_metrics(
                 col=1,
             )
 
+    lfp_range = _percentile_axis_range(
+        pd.concat(
+            [
+                pt_df[f"lfp_{hemisphere}_z_scored_{model}"],
+                pt_df[f"lfp_{hemisphere}_preds_{model}"],
+            ]
+        )
+    )
     fig.update_yaxes(
         title_text="LFP (z-scored)",
         row=1,
@@ -221,6 +255,7 @@ def plot_metrics(
         titlefont=dict(color=axis_title_font_color),
         showline=True,
         linecolor=axis_line_color,
+        range=lfp_range,
     )
     fig.update_xaxes(
         title_text="Date (CT)",
@@ -295,6 +330,7 @@ def plot_metrics(
                 day, row=2, col=1, line_dash="dot", line_color="black", line_width=3
             )
 
+    r2_range = _percentile_axis_range(linAR_R2)
     fig.update_yaxes(
         title_text="Linear AR R²",
         row=2,
@@ -303,6 +339,7 @@ def plot_metrics(
         titlefont=dict(color=axis_title_font_color),
         showline=True,
         linecolor=axis_line_color,
+        range=r2_range,
     )
     fig.update_xaxes(
         title_text="Days Since DBS Activation",
@@ -386,6 +423,7 @@ def plot_metrics(
         titlefont=dict(color=axis_title_font_color),
         showline=True,
         linecolor=axis_line_color,
+        range=r2_range,
     )
     fig.update_xaxes(
         title_text=f"t = {np.round(t_val, 3)}",

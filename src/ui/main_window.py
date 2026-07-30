@@ -233,6 +233,7 @@ class MainWindow(QWidget):
     def show_patient_menu(self):
         self.hide_all_menus()
         self.opening_screen.hide()
+        self.patient_menu.refresh_table()
         self.patient_menu.show()
 
     def hide_all_menus(self):

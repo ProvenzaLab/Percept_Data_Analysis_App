@@ -47,6 +47,12 @@ class PatientMenu(QWidget):
 
     def initUI(self):
         self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(20, 20, 20, 20)
+        self.main_layout.setSpacing(14)
+
+        self.heading = QLabel("Patients", self)
+        self.heading.setObjectName("titleLabel")
+        self.main_layout.addWidget(self.heading)
 
         self.table_layout = QVBoxLayout()
         self.main_layout.addLayout(self.table_layout)
@@ -58,10 +64,19 @@ class PatientMenu(QWidget):
 
     def load_patients_table(self):
         self.table = QTableWidget(self)
+        self.table.setAlternatingRowColors(True)
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.table.verticalHeader().setVisible(False)
+        self.table.setShowGrid(False)
 
         patients = self.load_patient_data()
         self.table.setRowCount(len(patients))
         if len(patients) == 0:
+            self.table.setColumnCount(1)
+            self.table.setHorizontalHeaderLabels(["Patient ID"])
+            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            self.table_layout.addWidget(self.table)
             return
 
         display_fields = ["Patient ID", "Directory", "Response Status"]
@@ -113,6 +128,8 @@ class PatientMenu(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle("Add Patient")
         layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         form_entries = {}
 
@@ -250,10 +267,12 @@ class PatientMenu(QWidget):
         non_response_checkbox.stateChanged.connect(toggle_response_checkbox)
 
         button_layout = QHBoxLayout()
+        cancel_button = QPushButton("Cancel")
+        cancel_button.setObjectName("secondaryButton")
+        cancel_button.clicked.connect(dialog.reject)
         save_button = QPushButton("Save")
         save_button.clicked.connect(save_and_close)
-        cancel_button = QPushButton("Cancel")
-        cancel_button.clicked.connect(dialog.reject)
+        button_layout.addStretch()
         button_layout.addWidget(cancel_button)
         button_layout.addWidget(save_button)
         layout.addLayout(button_layout)
@@ -264,6 +283,8 @@ class PatientMenu(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle("Delete Patient")
         layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
 
         if len(self.load_patient_data()) == 0:
             QMessageBox.warning(
@@ -298,9 +319,12 @@ class PatientMenu(QWidget):
 
         button_layout = QHBoxLayout()
         cancel_button = QPushButton("Cancel")
+        cancel_button.setObjectName("secondaryButton")
         cancel_button.clicked.connect(dialog.reject)
         delete_button = QPushButton("Delete")
+        delete_button.setObjectName("dangerButton")
         delete_button.clicked.connect(delete_and_close)
+        button_layout.addStretch()
         button_layout.addWidget(cancel_button)
         button_layout.addWidget(delete_button)
 
@@ -312,16 +336,20 @@ class PatientMenu(QWidget):
         button_layout = QHBoxLayout()
 
         back_button = QPushButton("Back", self)
+        back_button.setObjectName("secondaryButton")
         back_button.clicked.connect(self.go_back)
         button_layout.addWidget(back_button, alignment=Qt.AlignLeft)
 
+        button_layout.addStretch()
+
         delete_button = QPushButton("Delete patient", self)
+        delete_button.setObjectName("dangerButton")
         delete_button.clicked.connect(self.delete_patient)
-        button_layout.addWidget(delete_button, alignment=Qt.AlignCenter)
+        button_layout.addWidget(delete_button)
 
         add_button = QPushButton("Add patient", self)
         add_button.clicked.connect(self.add_patient)
-        button_layout.addWidget(add_button, alignment=Qt.AlignRight)
+        button_layout.addWidget(add_button)
 
         self.main_layout.addLayout(button_layout)
 

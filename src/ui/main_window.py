@@ -6,33 +6,30 @@ analysis pipeline, and routes results to the ``Plots`` widget when
 complete.
 """
 
-import sys
-import json
 import multiprocessing
-import pandas as pd
 
 from PySide6.QtWidgets import (
-    QApplication,
     QWidget,
     QLabel,
-    QPushButton,
     QVBoxLayout,
     QProgressBar,
     QMessageBox,
 )
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon
 
 from src.pipeline import run_pipeline
 from src.ui.opening import OpeningScreen, HelpMenu, DocMenu
 from src.ui.settings import SettingsMenu
 from src.ui.patient import PatientMenu
 from src.ui.plots import Plots
-from utils.utils import get_data_path
 
 
-WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 600
+WINDOW_WIDTH = 900
+WINDOW_HEIGHT = 640
+MIN_WINDOW_WIDTH = 720
+MIN_WINDOW_HEIGHT = 520
+PLOTS_WINDOW_WIDTH = 1280
+PLOTS_WINDOW_HEIGHT = 820
 LOADING_SCREEN_INTERVAL = 100  # in milliseconds
 
 
@@ -50,9 +47,11 @@ class MainWindow(QWidget):
     def initUI(self):
         self.setWindowTitle("Percept Data App")
         self.setGeometry(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.setMinimumSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)
 
         self.stack = QWidget(self)
         self.layout = QVBoxLayout(self.stack)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
         self.opening_screen = OpeningScreen(self)
@@ -77,47 +76,6 @@ class MainWindow(QWidget):
         self.doc_menu = DocMenu(self)
         self.layout.addWidget(self.doc_menu)
         self.doc_menu.hide()
-
-        self.apply_styles()
-
-    def apply_styles(self):
-        self.setStyleSheet(
-            """
-            QWidget {
-                background-color: #2d2d2d;
-                color: #f5f5f5;
-                font-family: Arial, sans-serif;
-            }
-            QLabel {
-                color: #f5f5f5;
-                font-size: 14px;
-            }
-            QLineEdit, QTextEdit, QComboBox {
-                background-color: #3d3d3d;
-                color: #f5f5f5;
-                border: 1px solid #555;
-                border-radius: 5px;
-                padding: 5px;
-                font-size: 14px;
-            }
-            QPushButton {
-                background-color: #1e90ff;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #1c86ee;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #3d3d3d;
-                color: #f5f5f5;
-                selection-background-color: #1e90ff;
-            }
-        """
-        )
 
     def show_loading_screen(self, patient_dict):
         self.loading_screen.show()
@@ -155,7 +113,7 @@ class MainWindow(QWidget):
             self.show_opening_screen()
 
     def show_plots(self, df_final, pt_changes_df):
-        self.setGeometry(100, 100, 1200, 800)
+        self.resize(PLOTS_WINDOW_WIDTH, PLOTS_WINDOW_HEIGHT)
         self.plots = Plots(self, df_final, pt_changes_df)
         self.layout.addWidget(self.plots)
         self.plots.show()
@@ -198,44 +156,24 @@ class LoadingScreen(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
 
+        self.layout.addStretch()
+
         self.label = QLabel(
-            "The application is processing your data.\nPlease wait a moment, this may take a couple of minutes.\nDo not close or restart the application.",
+            "The application is processing your data.\n"
+            "Please wait a moment, this may take a couple of minutes.\n"
+            "Do not close or restart the application.",
             self,
         )
+        self.label.setObjectName("loadingLabel")
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet(
-            """
-            QLabel {
-                font-size: 16px;
-                font-family: 'Arial', sans-serif;
-                color: #ffffff;
-                padding: 20px;
-            }
-        """
-        )
         self.layout.addWidget(self.label)
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 0)
-        self.progress_bar.setStyleSheet(
-            """
-            QProgressBar {
-                background-color: #3d3d3d;
-                border: 1px solid #555;
-                border-radius: 5px;
-            }
-            QProgressBar::chunk {
-                background-color: #1e90ff;
-                width: 20px;
-            }
-        """
-        )
-        self.layout.addWidget(self.progress_bar)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedWidth(360)
+        self.layout.addWidget(self.progress_bar, alignment=Qt.AlignHCenter)
 
-        self.setStyleSheet(
-            """
-            background-color: #2d2d2d;
-        """
-        )
+        self.layout.addStretch()
 
         self.setLayout(self.layout)

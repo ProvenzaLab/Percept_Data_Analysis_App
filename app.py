@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 
 from src.ui.main_window import MainWindow
+from src.ui import theme
 from utils.utils import resource_path
 
 
@@ -22,6 +23,9 @@ def main():
 
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(resource_path("icons/Icon.ico")))
+    # Applied at the application level so dialogs and message boxes inherit
+    # the theme too, not just the widgets parented to MainWindow.
+    app.setStyleSheet(theme.STYLESHEET)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

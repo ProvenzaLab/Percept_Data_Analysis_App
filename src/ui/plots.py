@@ -7,7 +7,6 @@ buttons used by the desktop app.
 
 from PySide6.QtWidgets import (
     QWidget,
-    QLabel,
     QPushButton,
     QVBoxLayout,
     QHBoxLayout,
@@ -30,6 +29,7 @@ import numpy as np
 from utils.utils import get_data_path
 import utils.plotting_utils as plots
 import utils.gui_utils as gui_utils
+from src.ui import theme
 
 
 WINDOW_WIDTH = 800
@@ -61,7 +61,9 @@ class Plots(QWidget):
 
     def initUI(self):
         self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(16, 16, 16, 16)
         self.content_layout = QHBoxLayout()
+        self.content_layout.setSpacing(16)
 
         self.init_json_frame()
         self.init_plot_frame()
@@ -96,19 +98,23 @@ class Plots(QWidget):
 
         # JSON display
         self.json_text = QTextEdit(self.json_fields_frame)
+        self.json_text.setObjectName("summaryPanel")
         self.json_text.setReadOnly(True)
         self.json_text.setMinimumHeight(200)
-        self.json_text.setStyleSheet(
-            "background:#4d4d4d; color:#f5f5f5; border:1px solid #555; padding:10px;"
-        )
         self.json_layout.addWidget(self.json_text)
 
-        # Legend
+        # Legend. Deliberately a light "card" so it reads as part of the
+        # (light-backgrounded) Plotly figure it annotates rather than as a
+        # stray panel floating in the dark chrome.
         self.legend = QGraphicsScene()
-        self.legend.setBackgroundBrush(QBrush("#FFFFFF"))
+        self.legend.setBackgroundBrush(QBrush(theme.LEGEND_CARD_BG))
         self.legend_view = QGraphicsView(self.legend)
-        self.legend_view.setSceneRect(0, 0, 200, 200)
-        self.json_layout.addWidget(self.legend_view, alignment=Qt.AlignCenter)
+        self.legend_view.setObjectName("legendView")
+        self.legend_view.setFrameShape(QGraphicsView.NoFrame)
+        self.legend_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.legend_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.legend_view.setFixedHeight(130)
+        self.json_layout.addWidget(self.legend_view)
 
         # Controls
         self.changes_checkbox = QCheckBox("Show Parameter Changes", self)
@@ -161,8 +167,10 @@ class Plots(QWidget):
     # -------------------------
     def init_bottom_buttons(self):
         self.button_layout = QHBoxLayout()
+        self.button_layout.setContentsMargins(0, 8, 0, 0)
 
         self.back_button = QPushButton("Back", self)
+        self.back_button.setObjectName("secondaryButton")
         self.back_button.clicked.connect(self.go_back)
         self.button_layout.addWidget(self.back_button, alignment=Qt.AlignLeft)
 
@@ -249,7 +257,8 @@ class Plots(QWidget):
             self.legend.addItem(item)
 
             text_item = QGraphicsTextItem(label)
-            text_item.setFont(QFont("Arial", 8))
+            text_item.setFont(QFont("Segoe UI", 8))
+            text_item.setDefaultTextColor(theme.LEGEND_CARD_TEXT)
 
             text_y = item.pos().y() * 2
 

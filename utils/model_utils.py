@@ -105,7 +105,7 @@ def apply_sliding_window(g, ar_features: list, gt_colname: str, window_size: int
         'phi_1': gt_colname.replace('z_scored', 'phi_1'),
         'preds': gt_colname.replace('z_scored', 'preds'),
         'residuals': gt_colname.replace('z_scored', 'residuals'),
-        'R2': gt_colname.replace('z_scored', 'R2'),
+        'R2': gt_colname.replace('z_scored', 'day_r2'),
     }
 
     if g.empty:

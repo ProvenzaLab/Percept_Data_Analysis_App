@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QDialog,
     QButtonGroup,
+    QComboBox,
 )
 
 from PySide6.QtCore import Qt
@@ -367,26 +368,46 @@ class PatientMenu(QWidget):
         dialog.exec()
 
     def delete_patient(self):
+        patients = self.load_patient_data()
+        if len(patients) == 0:
+            QMessageBox.warning(
+                self, "Validation Error", "No patients in the database to delete."
+            )
+            return
+
         dialog = QDialog(self)
         dialog.setWindowTitle("Delete Patient")
         layout = QVBoxLayout(dialog)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(10)
 
-        if len(self.load_patient_data()) == 0:
-            QMessageBox.warning(
-                dialog, "Validation Error", "No patients in the database to delete."
-            )
-            return
-
-        layout.addWidget(QLabel("Enter Patient ID to delete:"))
-        patient_id_entry = QLineEdit()
-        layout.addWidget(patient_id_entry)
+        layout.addWidget(QLabel("Select patient to delete:"))
+        patient_combo = QComboBox()
+        patient_combo.addItems(list(patients.keys()))
+        # Pre-select the row the user had highlighted in the table, if any.
+        selected_rows = self.table.selectionModel().selectedRows()
+        if selected_rows:
+            row = selected_rows[0].row()
+            if 0 <= row < len(self.row_to_patient):
+                idx = patient_combo.findText(self.row_to_patient[row])
+                if idx >= 0:
+                    patient_combo.setCurrentIndex(idx)
+        layout.addWidget(patient_combo)
 
         def delete_and_close():
-            patient_id = patient_id_entry.text().strip()
+            patient_id = patient_combo.currentText()
             if not patient_id:
-                QMessageBox.warning(dialog, "Input Error", "Please enter a Patient ID.")
+                QMessageBox.warning(dialog, "Input Error", "Please select a Patient ID.")
+                return
+
+            confirm = QMessageBox.question(
+                dialog,
+                "Confirm Delete",
+                f"Delete patient {patient_id}? This cannot be undone.",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if confirm != QMessageBox.Yes:
                 return
 
             patients = self.load_patient_data()

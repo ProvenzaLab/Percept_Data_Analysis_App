@@ -1,4 +1,3 @@
-import datetime
 from datetime import datetime
 import pandas as pd
 import plotly.io as pio
@@ -65,10 +64,19 @@ def save_plot(fig, filename):
     ext = filename.split(".")[-1].lower()
 
     if ext in ["png", "jpg", "jpeg", "webp", "svg", "pdf"]:
-        pio.write_image(fig, filename, format=ext)
+        # The on-screen figure is autosize=True (responsive to the window);
+        # a static raster/vector export has no such notion, so give it an
+        # explicit size rather than falling back to kaleido's small default.
+        pio.write_image(fig, filename, format=ext, width=1400, height=1000)
     else:
         filename = add_extension(filename, ".html")
-        fig.write_html(filename, include_plotlyjs="cdn")
+        fig.write_html(
+            filename,
+            include_plotlyjs="cdn",
+            config={"responsive": True},
+            default_width="100%",
+            default_height="100%",
+        )
 
 
 def open_file_dialog(parent):
@@ -84,27 +92,31 @@ def open_save_dialog(parent, title, default_filter):
 
 
 def create_temp_plot(fig):
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as temp_file:
-        temp_file.write(fig.to_html(include_plotlyjs="cdn").encode("utf-8"))
-        return temp_file.name
+    """Write ``fig`` to a temp HTML file that resizes with its container.
 
-
-def prepare_export_data(percept_data, param_dict):
-    linAR_r2 = percept_data["linearAR_R2"][param_dict["subject_name"]][
-        param_dict["hemisphere"]
-    ]
-    days = percept_data["days"][param_dict["subject_name"]][param_dict["hemisphere"]]
-    export_dict = {"Days_since_DBS": days.tolist(), "R2_values": linAR_r2.tolist()}
-    lin_ar_df = pd.DataFrame(export_dict)
-    lin_ar_df["activation_state"] = lin_ar_df["Days_since_DBS"].apply(
-        lambda x: (
-            "Responder"
-            if len(param_dict["responder_zone_idx"]) > 0
-            and x > param_dict["responder_zone_idx"][0]
-            else "Pre-DBS" if x < 0 else "Chronic State"
-        )
+    ``fig.to_html(full_html=True)``'s default template doesn't set a height
+    on ``<html>``/``<body>``, so ``default_height="100%"`` on the plot div
+    has nothing to size itself against. Build the wrapper document manually
+    instead, and pass ``config={"responsive": True}`` so Plotly re-lays-out
+    the figure whenever the embedding QWebEngineView is resized.
+    """
+    plot_div = fig.to_html(
+        include_plotlyjs="cdn",
+        full_html=False,
+        config={"responsive": True},
+        default_width="100%",
+        default_height="100%",
     )
-    return lin_ar_df
+    html = (
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+        "<style>html, body { margin: 0; height: 100%; }</style>"
+        f"</head><body>{plot_div}</body></html>"
+    )
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=".html", mode="w", encoding="utf-8"
+    ) as temp_file:
+        temp_file.write(html)
+        return temp_file.name
 
 
 def validate_date(date_str):

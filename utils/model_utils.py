@@ -135,16 +135,6 @@ def predict_series_and_calc_R2_sliding_window(
     ):  # Skip non-contiguous days
         return results_df
 
-    """ missing_lag_thresh = 0.4  # Adjust as needed
-
-    # Check full window (train + test)
-    combined_df = pd.concat([train_df, test_df])
-    missing_frac = combined_df[ar_features].isna().any(axis=1).mean()
-
-    if missing_frac > missing_lag_thresh:
-        # Too much missing data in lags for this window
-        return results_df """
-
     group_clean = group.copy()
     group_clean[ar_features] = group_clean[ar_features].fillna(0)
     window_df = group_clean.dropna(subset=ar_features + [gt_colname])
@@ -325,7 +315,7 @@ def leave_one_patient_out_logistic_regression(
         test_df = df[df["pt_id"] == patient].copy()  # Held-out patient
 
         # Filter out unknown and transition labels
-        bad_labels = ["Unknown", "Transition", "Disinhibited"]
+        bad_labels = ["Unknown", "Transition"]
         train_df.query(f"state_label_str not in @bad_labels", inplace=True)
         test_df.query(f"state_label_str not in @bad_labels", inplace=True)
 

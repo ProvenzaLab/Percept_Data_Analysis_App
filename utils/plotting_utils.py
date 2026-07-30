@@ -9,7 +9,6 @@ import scipy.stats as stats
 C_PRE_DBS = "rgba(255, 215, 0, 0.5)"
 C_REPSONDER = "rgba(0, 0, 255, 1)"
 C_NON_RESPONDER = "rgba(255, 185, 0, 1)"
-C_DISINHIBITED = "#ff0000"
 C_DOTS = "rgba(128, 128, 128, 0.5)"
 C_PRED = "rgba(51, 160, 44, 1)"
 C_RAW = "rgba(128, 128, 128, 0.7)"
@@ -214,7 +213,6 @@ def plot_metrics(
                 col=1,
             )
 
-    # fig.add_trace(go.Scatter(x=linAR_t, y=pt_df.dropna(subset=[f'lfp_{hemisphere}_preds_{model}'])[f'lfp_{hemisphere}_preds_{model}'], mode='lines', name="Linear AR", line=dict(color=c_linAR, width=1.5), showlegend=False), row=1, col=1)
     fig.update_yaxes(
         title_text="LFP (z-scored)",
         row=1,
@@ -251,7 +249,6 @@ def plot_metrics(
 
     color_dict = {
         0: C_PRE_DBS,
-        1: C_DISINHIBITED,
         2: C_NON_RESPONDER,
         3: C_REPSONDER,
         4: C_DOTS,
@@ -399,10 +396,11 @@ def plot_metrics(
         showline=True,
         linecolor=axis_line_color,
     )
-    # Set overall layout aesthetics
+    # Set overall layout aesthetics. No fixed height/width: the figure is
+    # rendered responsively (see gui_utils.create_temp_plot) so it resizes
+    # with the QWebEngineView/window rather than staying a fixed pixel size.
     fig.update_layout(
-        height=650,
-        width=900,
+        autosize=True,
         showlegend=True,
         legend=dict(
             x=0.85,
@@ -463,99 +461,3 @@ def plot_metrics(
     )
 
     return fig, t_val, p_val
-
-
-def make_legend(patient, patient_dict, show_changes):
-    fig = make_subplots()
-    pt_params = patient_dict[patient]
-
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            name="Raw LFP (z-scored)",
-            marker=dict(color=C_RAW, symbol="circle"),
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            name="AR(1) predicted LFP (z-scored)",
-            marker=dict(color=C_PRED, symbol="circle"),
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            name="Pre-DBS",
-            marker=dict(color=C_PRE_DBS, symbol="circle"),
-        )
-    )
-    if pt_params["response_status"] == 1:
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name="Response",
-                marker=dict(color=C_REPSONDER, symbol="circle"),
-            )
-        )
-    else:
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name="Non-response",
-                marker=dict(color=C_NON_RESPONDER, symbol="circle"),
-            )
-        )
-    if "disinhibited_dates" in list(pt_params.keys()):
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name="Disinhibited",
-                marker=dict(color=C_DISINHIBITED, symbol="circle"),
-            )
-        )
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            name="DBS On",
-            marker=dict(color="hotpink", symbol="square"),
-        )
-    )
-    if show_changes:
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name="Parameter Change",
-                marker=dict(color="black", symbol="square"),
-            )
-        )
-
-    fig.update_layout(
-        legend=dict(
-            x=0,
-            y=0,
-            xanchor="center",
-            yanchor="middle",
-            font=dict(size=10),
-            entrywidth=0.5,
-            entrywidthmode="fraction",
-            itemwidth=30,
-        )
-    )
-    return fig

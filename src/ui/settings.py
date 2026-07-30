@@ -141,9 +141,11 @@ class SettingsMenu(QWidget):
         button_layout = QHBoxLayout()
 
         self.back_button = QPushButton("Back", self)
+        self.back_button.setObjectName("secondaryButton")
         self.back_button.clicked.connect(self.go_back)
 
         self.default_button = QPushButton("Reset to Default", self)
+        self.default_button.setObjectName("secondaryButton")
         self.default_button.clicked.connect(self.set_default_settings)
 
         self.save_button = QPushButton("Save", self)

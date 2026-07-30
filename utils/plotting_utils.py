@@ -541,7 +541,7 @@ def make_legend(patient, patient_dict, show_changes):
                 x=[None],
                 y=[None],
                 mode="markers",
-                name="Paramter Change",
+                name="Parameter Change",
                 marker=dict(color="black", symbol="square"),
             )
         )

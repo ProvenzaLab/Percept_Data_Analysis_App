@@ -1,13 +1,9 @@
-from src.generate_raw import generate_raw
-from src.process_data import process_data
-from src.model_data import model_data
-from utils.plotting_utils import plot_metrics
+from src.pipeline import run_pipeline
+import utils.gui_utils as utils
 import pandas as pd
 import numpy as np
-import json
-import utils.gui_utils as utils
-import os
 from datetime import time as dttime
+import os
 
 # Export R² and Residual stats
 def export_res_stats(df_final, filename):
@@ -104,10 +100,13 @@ def export_raw_data(df_final, filename):
 
 
 def main(export):
-    """_summary_
-    Used to run the terminal version of the percept_data analysis app.
-    Should be used as a toy exploration of the pipeline, change parameters in patient_info.json to see results.
+    """Run the terminal version of the percept_data analysis app.
+
+    Should be used as a toy exploration of the pipeline. Edit
+    ``data/patient_info.json`` to change which patients are processed.
     """
+    import multiprocessing
+    import json
 
     with open("data/patient_info.json", "r") as f:
         patient_dict = json.load(f)
@@ -115,47 +114,21 @@ def main(export):
     with open("data/param.json", "r") as f:
         param_dict = json.load(f)
 
-    pt = patient_dict[0]  # Process data from first patient in patient_info.json
-    try:
-        raw_df, param_changes = generate_raw.generate_raw(pt, patient_dict[pt])
+    queue = multiprocessing.Queue()
+    run_pipeline(patient_dict, queue)
+    result = queue.get()
 
-    except TypeError or ValueError as e:
-        print(f"Unable to retrieve data for pateint {pt}")
+    if result is None:
+        print("Pipeline failed; check logs above for the underlying error.")
         return
 
-    processed_data = process_data.process_data(
-        pt,
-        raw_df,
-        patient_dict[pt],
-        ark=param_dict["ark"],
-        max_lag=param_dict["lags"] if param_dict["ark"] else 1,
-    )
+    df_final, pt_changes_df = result
 
-    df_w_preds = model_data.model_data(
-        processed_data,
-        use_constant=False if not param_dict["ark"] else True,
-        ark=param_dict["ark"],
-        max_lag=param_dict["lags"] if param_dict["ark"] else 1,
-    )
+    if df_final.empty:
+        print("No data was produced for any patient.")
+        return
 
-    pt_changes_df = pd.concat([pt_changes_df, param_changes], ignore_index=True)
-
-    df_final = pd.concat([df_final, df_w_preds], ignore_index=True)
-
-    print(f"{pt} done")
-
-    # Plot the metrics
-    fig = plot_metrics(
-        df_w_preds,
-        pt,
-        'left',
-        pt_changes_df,
-        show_changes=False,
-        patients_dict=patient_dict,
-        param_dict=param_dict,
-    )
-
-    fig.show()
+    print(f"{len(df_final['pt_id'].unique())} patient(s) processed.")
 
     # Export data into excel files
     if export:

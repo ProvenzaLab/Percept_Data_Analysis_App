@@ -34,7 +34,10 @@ def save_raw_data(data, filename):
 
 def save_lin_ar_feature(df, filename, param_dict):
     model = param_dict["model"]
-    hemisphere = "left" if param_dict["hemisphere"] == 0 else "right"
+    # ``param_dict["hemisphere"]`` is a string ("left"/"right") written by
+    # the settings menu. Treat anything that is not "left" as the right
+    # hemisphere so unknown/legacy values fall back to "right".
+    hemisphere = "left" if str(param_dict.get("hemisphere", "")).lower() == "left" else "right"
     data = df.groupby("days_since_dbs").head(1)[
         [f"lfp_{hemisphere}_day_r2_{model}", "days_since_dbs"]
     ]

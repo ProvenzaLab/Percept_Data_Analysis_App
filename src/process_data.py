@@ -10,6 +10,32 @@ import json
 central_time = ZoneInfo("America/Chicago")
 
 
+def _add_lag_columns(df, groups, col, max_lag):
+    """Join ``col``'s lag_1 .. lag_``max_lag`` columns onto ``df``.
+
+    Parameters:
+    - df (pd.DataFrame): DataFrame to join the new lag columns onto.
+    - groups (DataFrameGroupBy): Grouping over contiguous runs of readings for
+      the hemisphere ``col`` belongs to, so lags never straddle a gap in the
+      recording.
+    - col (str): Name of the column to generate lag terms for.
+    - max_lag (int): Highest lag term to generate. Pass 1 for an AR(1) model.
+
+    Returns:
+    - df (pd.DataFrame): ``df`` with the lag columns joined on.
+    """
+    for k in range(1, max_lag + 1):
+        join_df = groups.apply(
+            lambda g: pd.DataFrame({f"{col}_lag_{k}": g[col].shift(periods=k)}),
+            include_groups=False,
+        )
+        if join_df.empty:
+            df[f"{col}_lag_{k}"] = np.nan
+        else:
+            df = df.join(join_df, how="left")
+    return df
+
+
 def process_data(
     pt_name: str,
     raw_data: pd.DataFrame,
@@ -160,59 +186,20 @@ def process_data(
             how="left",
         )
 
-    # Add new lag1 column for autoregression.
+    # Add lag columns for autoregression.
     groups_left = processed_data.groupby(
         ["lead_location", "contig_left"], group_keys=False
     )
     groups_right = processed_data.groupby(
         ["lead_location", "contig_right"], group_keys=False
     )
-    for i, name in enumerate(zscored_cols):
-        if i == 0:
-            join_df = groups_left.apply(
-                lambda g: pd.DataFrame({f"{name}_lag_1": g[name].shift(periods=1)}),
-                include_groups=False,
-            )
-            if join_df.empty:
-                processed_data[f"{name}_lag_1"] = np.nan
-            else:
-                processed_data = processed_data.join(join_df, how="left")
-
-            if ark:
-                for k in range(2, max_lag + 1):
-                    join_df = groups_left.apply(
-                        lambda g: pd.DataFrame(
-                            {f"{name}_lag_{k}": g[name].shift(periods=k)}
-                        ),
-                        include_groups=False,
-                    )
-                    if join_df.empty:
-                        processed_data[f"{name}_lag_{k}"] = np.nan
-                    else:
-                        processed_data = processed_data.join(join_df, how="left")
-
-        else:
-            join_df = groups_right.apply(
-                lambda g: pd.DataFrame({f"{name}_lag_1": g[name].shift(periods=1)}),
-                include_groups=False,
-            )
-            if join_df.empty:
-                processed_data[f"{name}_lag_1"] = np.nan
-            else:
-                processed_data = processed_data.join(join_df, how="left")
-
-            if ark:
-                for k in range(2, max_lag + 1):
-                    join_df = groups_right.apply(
-                        lambda g: pd.DataFrame(
-                            {f"{name}_lag_{k}": g[name].shift(periods=k)}
-                        ),
-                        include_groups=False,
-                    )
-                    if join_df.empty:
-                        processed_data[f"{name}_lag_{k}"] = np.nan
-                    else:
-                        processed_data = processed_data.join(join_df, how="left")
+    # The AR(1) model only needs lag_1; AR(k) needs every lag up to max_lag.
+    lags_to_add = max_lag if ark else 1
+    for i, zscored_col in enumerate(zscored_cols):
+        hemi_groups = groups_left if i == 0 else groups_right
+        processed_data = _add_lag_columns(
+            processed_data, hemi_groups, zscored_col, lags_to_add
+        )
 
     state_labels = state_utils.get_state_labels(processed_data, patient_dict)
     processed_data = processed_data.drop(
@@ -248,16 +235,5 @@ def process_data(
         processed_data["lfp_right_raw"] >= ((2**32) - 1) / 60
     ) & (processed_data["lfp_right_raw"].notna())
     processed_data["time_bin_time"] = processed_data["time_bin"].dt.time
-
-    # Print outlier composition
-    vcvs_df = processed_data.query('lead_location == "VC/VS"')
-    left_outliers = (
-        vcvs_df["is_outlier_left"].sum() / vcvs_df["is_outlier_left"].count() * 100
-    )
-    right_outliers = (
-        vcvs_df["is_outlier_right"].sum() / vcvs_df["is_outlier_right"].count() * 100
-    )
-    # print(f'{pt_name} Left Outlier %: {left_outliers}')
-    # print(f'{pt_name} Right Outlier %: {right_outliers}')
 
     return processed_data

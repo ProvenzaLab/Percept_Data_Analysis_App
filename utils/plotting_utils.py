@@ -214,7 +214,6 @@ def plot_metrics(
                 col=1,
             )
 
-    # fig.add_trace(go.Scatter(x=linAR_t, y=pt_df.dropna(subset=[f'lfp_{hemisphere}_preds_{model}'])[f'lfp_{hemisphere}_preds_{model}'], mode='lines', name="Linear AR", line=dict(color=c_linAR, width=1.5), showlegend=False), row=1, col=1)
     fig.update_yaxes(
         title_text="LFP (z-scored)",
         row=1,
@@ -463,99 +462,3 @@ def plot_metrics(
     )
 
     return fig, t_val, p_val
-
-
-def make_legend(patient, patient_dict, show_changes):
-    fig = make_subplots()
-    pt_params = patient_dict[patient]
-
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            name="Raw LFP (z-scored)",
-            marker=dict(color=C_RAW, symbol="circle"),
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            name="AR(1) predicted LFP (z-scored)",
-            marker=dict(color=C_PRED, symbol="circle"),
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            name="Pre-DBS",
-            marker=dict(color=C_PRE_DBS, symbol="circle"),
-        )
-    )
-    if pt_params["response_status"] == 1:
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name="Response",
-                marker=dict(color=C_REPSONDER, symbol="circle"),
-            )
-        )
-    else:
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name="Non-response",
-                marker=dict(color=C_NON_RESPONDER, symbol="circle"),
-            )
-        )
-    if "disinhibited_dates" in list(pt_params.keys()):
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name="Disinhibited",
-                marker=dict(color=C_DISINHIBITED, symbol="circle"),
-            )
-        )
-    fig.add_trace(
-        go.Scatter(
-            x=[None],
-            y=[None],
-            mode="markers",
-            name="DBS On",
-            marker=dict(color="hotpink", symbol="square"),
-        )
-    )
-    if show_changes:
-        fig.add_trace(
-            go.Scatter(
-                x=[None],
-                y=[None],
-                mode="markers",
-                name="Parameter Change",
-                marker=dict(color="black", symbol="square"),
-            )
-        )
-
-    fig.update_layout(
-        legend=dict(
-            x=0,
-            y=0,
-            xanchor="center",
-            yanchor="middle",
-            font=dict(size=10),
-            entrywidth=0.5,
-            entrywidthmode="fraction",
-            itemwidth=30,
-        )
-    )
-    return fig

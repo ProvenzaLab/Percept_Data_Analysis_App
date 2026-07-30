@@ -12,8 +12,6 @@ def generate_raw(pt_name: str, patient_dict: dict):
 
     # Read json files from provided directory
 
-    pt_raw_df = []
-
     jsons = json_utils.get_json_filenames(patient_dict["directory"])
     pt_changes_df = pd.DataFrame(
         columns=["timestamp", "pt_id"]
@@ -59,16 +57,16 @@ def generate_raw(pt_name: str, patient_dict: dict):
                 pt_changes_df.loc[t, "timestamp"] = t
                 pt_changes_df.loc[t, "source_file"] = filename
     pt_changes_df["pt_id"] = pt_name
-    try:
-        raw_data = pd.concat(raw_data_list, ignore_index=True)
-        raw_data["pt_id"] = pt_name
-        if raw_data.size != 0:
-            pt_raw_df.append(raw_data)
-    except ValueError as e:
-        print(f"No chronic LFP power data from {pt_name}")
-        return ProcessLookupError
+    # An empty ``raw_data_list`` means none of the patient's JSON files
+    # contained chronic LFP power data. Raise so ``run_pipeline`` can skip
+    # this patient and keep processing the rest.
+    if not raw_data_list:
+        raise ValueError(f"No chronic LFP power data from {pt_name}")
 
-    raw_df = pd.concat(pt_raw_df, ignore_index=True)
+    raw_df = pd.concat(raw_data_list, ignore_index=True)
+    if raw_df.empty:
+        raise ValueError(f"No chronic LFP power data from {pt_name}")
+    raw_df["pt_id"] = pt_name
 
     # Relabel all remaining "OTHER" lead locations to VC/VS
     raw_df.loc[raw_df["left_lead_location"] == "OTHER", "left_lead_location"] = "VC/VS"

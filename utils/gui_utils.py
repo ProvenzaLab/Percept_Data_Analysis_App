@@ -1,4 +1,3 @@
-import datetime
 from datetime import datetime
 import pandas as pd
 import plotly.io as pio
@@ -87,24 +86,6 @@ def create_temp_plot(fig):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as temp_file:
         temp_file.write(fig.to_html(include_plotlyjs="cdn").encode("utf-8"))
         return temp_file.name
-
-
-def prepare_export_data(percept_data, param_dict):
-    linAR_r2 = percept_data["linearAR_R2"][param_dict["subject_name"]][
-        param_dict["hemisphere"]
-    ]
-    days = percept_data["days"][param_dict["subject_name"]][param_dict["hemisphere"]]
-    export_dict = {"Days_since_DBS": days.tolist(), "R2_values": linAR_r2.tolist()}
-    lin_ar_df = pd.DataFrame(export_dict)
-    lin_ar_df["activation_state"] = lin_ar_df["Days_since_DBS"].apply(
-        lambda x: (
-            "Responder"
-            if len(param_dict["responder_zone_idx"]) > 0
-            and x > param_dict["responder_zone_idx"][0]
-            else "Pre-DBS" if x < 0 else "Chronic State"
-        )
-    )
-    return lin_ar_df
 
 
 def validate_date(date_str):

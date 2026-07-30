@@ -340,8 +340,6 @@ def fill_data(group_df, cols_to_fill, outlier_fill_method, offset_col="days_sinc
         )
 
         for i in range(len(start_index) - 1):
-            if i == 3:
-                pass
             data = group_df.loc[start_index[i] : start_index[i + 1] - 1, col]
 
             if np.all(np.isnan(data)):

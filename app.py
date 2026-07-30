@@ -13,6 +13,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 
 from src.ui.main_window import MainWindow
+from utils.utils import resource_path
 
 
 def main():
@@ -20,7 +21,7 @@ def main():
     multiprocessing.freeze_support()
 
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon("icons/Icon.ico"))
+    app.setWindowIcon(QIcon(resource_path("icons/Icon.ico")))
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

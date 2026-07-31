@@ -1,0 +1,11 @@
+PySide6
+numpy
+pandas
+statsmodels
+scipy
+EntropyHub
+scikit-learn
+plotly
+torch==2.4.0+cpu --index-url https://download.pytorch.org/whl/cpu
+torchaudio==2.4.0+cpu --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.19.0+cpu --index-url https://download.pytorch.org/whl/cpu
